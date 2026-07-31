@@ -62,9 +62,30 @@ public class ComplianceDeclarationTests
         }
     }
 
+    [Fact]
+    public void FromAcceptedToCancelled_ShouldBeAllowed()
+    {
+        const string reason = "Cancellation reason";
+        var accepted = CreateDraft() with { Status = ComplianceDeclarationStatus.Accepted };
+        var user = UserFixture.Default().Create();
+
+        var cancelled = accepted.UpdateStatus(
+            ComplianceDeclarationStatus.Cancelled,
+            reason,
+            user,
+            UtcNow.AddSeconds(10)
+        );
+
+        cancelled.Status.Should().Be(ComplianceDeclarationStatus.Cancelled);
+        var audit = cancelled.Audit.Should().ContainSingle().Which;
+        audit.Action.Should().Be(nameof(ComplianceDeclarationStatus.Cancelled));
+        audit.User.Should().Be(user);
+        audit.Timestamp.Should().Be(UtcNow.AddSeconds(10));
+        audit.Should().BeOfType<ReasonAuditEntry>().Which.Reason.Should().Be(reason);
+    }
+
     [Theory]
     [InlineData(ComplianceDeclarationStatus.Submitted, ComplianceDeclarationStatus.Submitted)]
-    [InlineData(ComplianceDeclarationStatus.Accepted, ComplianceDeclarationStatus.Cancelled)]
     [InlineData(ComplianceDeclarationStatus.Cancelled, ComplianceDeclarationStatus.Accepted)]
     [InlineData(ComplianceDeclarationStatus.Accepted, ComplianceDeclarationStatus.Submitted)]
     [InlineData(ComplianceDeclarationStatus.Cancelled, ComplianceDeclarationStatus.Submitted)]

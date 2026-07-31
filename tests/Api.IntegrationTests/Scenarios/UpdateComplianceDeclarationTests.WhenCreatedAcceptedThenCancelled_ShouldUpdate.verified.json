@@ -2,7 +2,7 @@
   "id": "{Scrubbed}",
   "created": "{Scrubbed}",
   "updated": "{Scrubbed}",
-  "status": "Accepted",
+  "status": "Cancelled",
   "organisation": {
     "id": "Guid_1",
     "registrationType": "DirectProducer",
@@ -60,6 +60,17 @@
       },
       "timestamp": "{Scrubbed}",
       "action": "Accepted"
+    },
+    {
+      "reason": "Cancelled reason",
+      "user": {
+        "id": "Guid_4",
+        "email": "approved-person@email.com",
+        "name": "Approved Person Name",
+        "locale": "en"
+      },
+      "timestamp": "{Scrubbed}",
+      "action": "Cancelled"
     }
   ]
 }

@@ -87,6 +87,7 @@ public record ComplianceDeclaration
             ComplianceDeclarationStatus.Submitted => next
                 is ComplianceDeclarationStatus.Accepted
                     or ComplianceDeclarationStatus.Cancelled,
+            ComplianceDeclarationStatus.Accepted => next is ComplianceDeclarationStatus.Cancelled,
             _ => false,
         };
 }

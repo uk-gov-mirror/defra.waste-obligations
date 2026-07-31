@@ -18,7 +18,7 @@ public class UpdateComplianceDeclarationTests : IntegrationTestBase
     private const string Update = "update";
 
     [Fact]
-    public async Task WhenCreatedAndAccepted_ShouldUpdate()
+    public async Task WhenCreatedAcceptedThenCancelled_ShouldUpdate()
     {
         var organisationId = Guid.NewGuid();
         using var sqsClient = CreateSqsClient();
@@ -51,6 +51,15 @@ public class UpdateComplianceDeclarationTests : IntegrationTestBase
         response = await client.PatchAsJsonAsync(
             Testing.Endpoints.Organisations.ComplianceDeclarations.Update(organisationId, result.Id),
             UpdateComplianceDeclarationRequestFixture.Accepted().Create(),
+            TestContext.Current.CancellationToken
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertAnalyticsEventQueued(sqsClient, result.Id, Update, Amended);
+
+        response = await client.PatchAsJsonAsync(
+            Testing.Endpoints.Organisations.ComplianceDeclarations.Update(organisationId, result.Id),
+            UpdateComplianceDeclarationRequestFixture.Cancelled().Create(),
             TestContext.Current.CancellationToken
         );
 
