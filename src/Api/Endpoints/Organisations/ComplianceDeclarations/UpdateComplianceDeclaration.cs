@@ -1,11 +1,11 @@
 using Defra.WasteObligations.Api.Authentication;
-using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
 using Defra.WasteObligations.Api.Dtos;
 using Defra.WasteObligations.Api.Services;
 using Defra.WasteObligations.Api.Services.WasteOrganisations;
 using Microsoft.AspNetCore.Mvc;
 using ComplianceDeclaration = Defra.WasteObligations.Api.Dtos.ComplianceDeclaration;
+using ComplianceDeclarationStatus = Defra.WasteObligations.Api.Dtos.ComplianceDeclarationStatus;
 
 namespace Defra.WasteObligations.Api.Endpoints.Organisations.ComplianceDeclarations;
 
@@ -35,7 +35,7 @@ public static class UpdateComplianceDeclaration
         [FromBody] UpdateComplianceDeclarationRequest request,
         [FromServices] IWasteOrganisationsService wasteOrganisationsService,
         [FromServices] IComplianceDeclarationService complianceDeclarationService,
-        [FromServices] TimeProvider timeProvider,
+        [FromServices] IEmailService emailService,
         CancellationToken cancellationToken
     )
     {
@@ -54,18 +54,23 @@ public static class UpdateComplianceDeclaration
 
         if (request.Status.HasValue)
         {
-            var updated = complianceDeclaration.UpdateStatus(
+            complianceDeclaration = await complianceDeclarationService.UpdateStatus(
+                complianceDeclaration,
                 request.Status.Value.ToEntity(),
                 request.Reason,
                 request.User.ToEntity(),
-                timeProvider.GetUtcNowWithoutMicroseconds()
-            );
-
-            complianceDeclaration = await complianceDeclarationService.Update(
-                complianceDeclaration,
-                updated,
                 cancellationToken
             );
+
+            if (request.Status is ComplianceDeclarationStatus.Cancelled)
+            {
+                await emailService.SendCancelledEmail(
+                    complianceDeclaration,
+                    organisation,
+                    request.Reason!,
+                    cancellationToken
+                );
+            }
         }
 
         return Results.Ok(complianceDeclaration.ToDto());

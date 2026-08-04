@@ -10,4 +10,11 @@ public interface IEmailService
         Organisation organisation,
         CancellationToken cancellationToken
     );
+
+    Task SendCancelledEmail(
+        ComplianceDeclaration complianceDeclaration,
+        Organisation organisation,
+        string reason,
+        CancellationToken cancellationToken
+    );
 }

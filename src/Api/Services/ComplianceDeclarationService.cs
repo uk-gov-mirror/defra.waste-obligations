@@ -289,6 +289,19 @@ public class ComplianceDeclarationService(
         return updated;
     }
 
+    public Task<ComplianceDeclaration> UpdateStatus(
+        ComplianceDeclaration current,
+        ComplianceDeclarationStatus status,
+        string? reason,
+        User user,
+        CancellationToken cancellationToken
+    )
+    {
+        var updated = current.UpdateStatus(status, reason, user, timeProvider.GetUtcNowWithoutMicroseconds());
+
+        return Update(current, updated, cancellationToken);
+    }
+
     private string? ReadTraceId()
     {
         if (headerPropagationValues.Headers is null)
