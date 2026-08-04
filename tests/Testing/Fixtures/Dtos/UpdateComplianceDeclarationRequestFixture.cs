@@ -35,11 +35,11 @@ public static class UpdateComplianceDeclarationRequestFixture
             .With(x => x.User, UserFixture.Regulator().Create());
     }
 
-    public static IPostprocessComposer<UpdateComplianceDeclarationRequest> Cancelled()
+    public static IPostprocessComposer<UpdateComplianceDeclarationRequest> Cancelled(string? reason = null)
     {
         return Default()
             .With(x => x.Status, ComplianceDeclarationStatus.Cancelled)
-            .With(x => x.Reason, "Cancelled reason")
+            .With(x => x.Reason, reason ?? "Producer requested to cancel")
             .With(x => x.User, UserFixture.ApprovedPerson().Create());
     }
 }

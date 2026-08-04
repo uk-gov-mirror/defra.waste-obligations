@@ -1,5 +1,6 @@
 using AutoFixture;
 using Defra.WasteObligations.Api.Data;
+using Defra.WasteObligations.Api.Data.Entities;
 using Defra.WasteObligations.Api.Services;
 using Defra.WasteObligations.Testing.Fixtures.Entities;
 using MongoDB.Bson;
@@ -123,5 +124,18 @@ public class FakeComplianceDeclarationService : IComplianceDeclarationService
         }
 
         throw new Exception("Compliance declaration could not be found");
+    }
+
+    public Task<ComplianceDeclaration> UpdateStatus(
+        ComplianceDeclaration current,
+        ComplianceDeclarationStatus status,
+        string? reason,
+        User user,
+        CancellationToken cancellationToken
+    )
+    {
+        var updated = current.UpdateStatus(status, reason, user, UtcNow().UtcDateTime);
+
+        return Update(current, updated, cancellationToken);
     }
 }
