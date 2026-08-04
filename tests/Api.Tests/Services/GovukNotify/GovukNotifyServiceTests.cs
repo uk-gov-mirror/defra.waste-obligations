@@ -127,6 +127,55 @@ public class GovukNotifyServiceTests : WireMockTestBase
     }
 
     [Fact]
+    public async Task SendComplianceDeclarationCancelledEmail_ShouldSendPerRecipientPersonalisation()
+    {
+        const string cancellationEnglishTemplateId = "cancellation_en_template_id";
+
+        var config = new Dictionary<string, string?>
+        {
+            { $"{GovukNotifyOptions.SectionName}:ApiKey", "dummyapikey" },
+            {
+                $"{GovukNotifyOptions.SectionName}:Templates:{nameof(GovukNotifyOptions.TemplateName.ComplianceDeclarationCancellationProducerRequested)}:TemplateId:En",
+                cancellationEnglishTemplateId
+            },
+        };
+
+        ServiceCollection services = [];
+        services.AddGovukNotify();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(config).Build());
+        services.AddTransient<ProxyHttpMessageHandler>();
+        services.AddGovukNotifyFactory(_ => (_, _) => NotificationClient);
+
+        await using var sp = services.BuildServiceProvider();
+
+        var service = sp.GetRequiredService<IGovukNotifyService>();
+
+        await service.SendComplianceDeclarationCancelledEmail(
+            GovukNotifyOptions.TemplateName.ComplianceDeclarationCancellationProducerRequested,
+            [
+                ("email1@email.com", new Dictionary<string, object> { { "firstName", "First1" } }),
+                ("email2@email.com", new Dictionary<string, object> { { "firstName", "First2" } }),
+            ],
+            "en"
+        );
+
+        await NotificationClient
+            .Received()
+            .SendEmailAsync(
+                "email1@email.com",
+                cancellationEnglishTemplateId,
+                Arg.Is<Dictionary<string, object>>(x => (string)x["firstName"] == "First1")
+            );
+        await NotificationClient
+            .Received()
+            .SendEmailAsync(
+                "email2@email.com",
+                cancellationEnglishTemplateId,
+                Arg.Is<Dictionary<string, object>>(x => (string)x["firstName"] == "First2")
+            );
+    }
+
+    [Fact]
     public async Task InvalidTemplateName_Throws()
     {
         var config = new Dictionary<string, string?>

@@ -8,4 +8,10 @@ public interface IGovukNotifyService
         Dictionary<string, object> personalisation,
         string language
     );
+
+    Task SendComplianceDeclarationCancelledEmail(
+        GovukNotifyOptions.TemplateName template,
+        IEnumerable<(string Email, Dictionary<string, object> Personalisation)> recipients,
+        string language
+    );
 }

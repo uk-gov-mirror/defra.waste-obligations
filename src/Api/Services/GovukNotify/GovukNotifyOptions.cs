@@ -34,5 +34,9 @@ public class GovukNotifyOptions
     {
         ComplianceDeclarationSubmissionDirectProducer,
         ComplianceDeclarationSubmissionComplianceScheme,
+        ComplianceDeclarationCancellationNotSignedByCorrectPerson,
+        ComplianceDeclarationCancellationRecyclingObligationsChanged,
+        ComplianceDeclarationCancellationCanMeetRecyclingObligations,
+        ComplianceDeclarationCancellationProducerRequested,
     }
 }
