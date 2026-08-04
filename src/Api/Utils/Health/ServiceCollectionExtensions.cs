@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
 using Defra.WasteObligations.Api.Consumers;
+using Defra.WasteObligations.Api.Services.AccountBackend;
 using Defra.WasteObligations.Api.Services.GovukNotify;
 using Defra.WasteObligations.Api.Services.PrnCommonBackend;
 using Defra.WasteObligations.Api.Services.WasteOrganisations;
@@ -22,6 +23,15 @@ public static class ServiceCollectionExtensions
                 new HealthCheckRegistration(
                     PrnCommonBackendOptions.SectionName,
                     sp => new PrnCommonBackendHealthCheck(sp),
+                    HealthStatus.Unhealthy,
+                    tags: [WebApplicationExtensions.Extended],
+                    timeout: TimeSpan.FromSeconds(10)
+                )
+            )
+            .Add(
+                new HealthCheckRegistration(
+                    AccountBackendOptions.SectionName,
+                    sp => new AccountBackendHealthCheck(sp),
                     HealthStatus.Unhealthy,
                     tags: [WebApplicationExtensions.Extended],
                     timeout: TimeSpan.FromSeconds(10)

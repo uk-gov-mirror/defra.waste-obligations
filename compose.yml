@@ -87,6 +87,9 @@ services:
       PrnCommonBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       PrnCommonBackend__BaseAddress: http://wiremock/
       PrnCommonBackend__ClientId: prn-common-backend
+      AccountBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
+      AccountBackend__BaseAddress: http://wiremock/
+      AccountBackend__ClientId: account-backend
       WasteOrganisations__BaseAddress: http://wiremock/
       WasteOrganisations__ClientId: waste-organisations
       GovukNotify__BaseAddress: http://wiremock/
