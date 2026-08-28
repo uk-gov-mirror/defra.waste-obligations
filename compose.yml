@@ -93,6 +93,7 @@ services:
       WasteOrganisations__BaseAddress: http://wiremock/
       WasteOrganisations__ClientId: waste-organisations
       OrganisationEligibility__RefreshPollingEnabled: false
+      OrganisationObligationHydration__PollingEnabled: false
       GovukNotify__BaseAddress: http://wiremock/
       GovukNotify__ApiKey: dummyapikey-00000000-0000-0000-0000-000000000000-00000000-0000-0000-0000-000000000000
     ports:

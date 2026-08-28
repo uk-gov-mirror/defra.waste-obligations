@@ -32,4 +32,19 @@ public class ServiceCollectionExtensionsTests
             .Should()
             .Contain(x => x.ServiceType == typeof(IEmailMetrics) && x.ImplementationType == typeof(EmailMetrics));
     }
+
+    [Fact]
+    public void AddRequestMetrics_ShouldRegisterOrganisationObligationHydrationMetrics()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRequestMetrics();
+
+        services
+            .Should()
+            .Contain(x =>
+                x.ServiceType == typeof(IOrganisationObligationHydrationMetrics)
+                && x.ImplementationType == typeof(OrganisationObligationHydrationMetrics)
+            );
+    }
 }
