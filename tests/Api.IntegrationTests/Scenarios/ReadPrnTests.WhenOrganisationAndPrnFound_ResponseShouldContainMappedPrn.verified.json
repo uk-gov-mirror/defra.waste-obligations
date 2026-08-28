@@ -1,0 +1,38 @@
+{
+  "id": "Guid_1",
+  "number": "PRN123",
+  "type": "PRN",
+  "status": "AwaitingAcceptance",
+  "issuedAt": "2025-06-15T10:30:00+00:00",
+  "obligationYear": 2025,
+  "accreditationYear": 2025,
+  "decemberWaste": false,
+  "material": "Aluminium",
+  "recyclingProcess": "R3",
+  "tonnage": 999,
+  "issuer": {
+    "organisationName": "Acme Reprocessors Ltd"
+  },
+  "recipient": {
+    "organisationId": "Guid_2",
+    "displayName": "Test Producer Ltd",
+    "name": null,
+    "tradingName": null,
+    "registrationType": null
+  },
+  "authorisedBy": {
+    "name": "Jane Smith",
+    "position": "Director"
+  },
+  "accreditationNumber": "ACC123",
+  "reprocessingSite": "42 Factory Road, Manchester",
+  "reprocessorExporterAgency": "Environment Agency",
+  "additionalNotes": "Important note about this PRN",
+  "audit": {
+    "createdAt": "2026-01-15T10:00:00+00:00",
+    "updatedAt": "2026-01-15T10:05:00+00:00",
+    "acceptedAt": null,
+    "rejectedAt": null,
+    "cancelledAt": null
+  }
+}

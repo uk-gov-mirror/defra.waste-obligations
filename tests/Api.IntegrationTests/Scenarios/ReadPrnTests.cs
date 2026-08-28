@@ -1,5 +1,5 @@
 using System.Net;
-using System.Text.Json;
+using System.Net.Http.Json;
 using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteObligations.Api.Dtos;
@@ -42,19 +42,8 @@ public class ReadPrnTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        var result = JsonSerializer.Deserialize<Prn>(responseBody, JsonSerializerOptions.Web);
+        var result = await response.Content.ReadFromJsonAsync<Prn>(TestContext.Current.CancellationToken);
         result.Should().BeEquivalentTo(prn.ToDto());
-
-        using var responseJson = JsonDocument.Parse(responseBody);
-        var root = responseJson.RootElement;
-        root.GetProperty("issuedAt").GetString().Should().Be("2025-06-15T10:30:00+00:00");
-        root.GetProperty("recipient").GetProperty("name").ValueKind.Should().Be(JsonValueKind.Null);
-        root.GetProperty("recipient").GetProperty("tradingName").ValueKind.Should().Be(JsonValueKind.Null);
-        root.GetProperty("recipient").GetProperty("registrationType").ValueKind.Should().Be(JsonValueKind.Null);
-        root.GetProperty("audit").GetProperty("createdAt").GetString().Should().Be("2026-01-15T10:00:00+00:00");
-        root.GetProperty("audit").GetProperty("updatedAt").GetString().Should().Be("2026-01-15T10:05:00+00:00");
-        root.GetProperty("audit").GetProperty("acceptedAt").ValueKind.Should().Be(JsonValueKind.Null);
-        root.GetProperty("audit").GetProperty("rejectedAt").ValueKind.Should().Be(JsonValueKind.Null);
-        root.GetProperty("audit").GetProperty("cancelledAt").ValueKind.Should().Be(JsonValueKind.Null);
+        await VerifyJson(responseBody).DontScrubDateTimes();
     }
 }

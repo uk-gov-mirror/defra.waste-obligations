@@ -1,9 +1,7 @@
 namespace Defra.WasteObligations.Api.Services.PrnCommonBackend;
 
-public interface IPrnCommonBackendService
+public interface IPrnCommonBackendService : IOrganisationObligationSource
 {
-    Task<IEnumerable<Obligation>> ReadObligations(Guid organisationId, int year, CancellationToken cancellationToken);
-
     Task<PrnData?> ReadPrn(Guid organisationId, string prnId, CancellationToken cancellationToken);
 
     Task<PrnSearchResponse> SearchPrns(
