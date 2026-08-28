@@ -26,6 +26,9 @@ public class MongoDbContext(
     public IMongoCollection<OrganisationEligibilitySnapshot> OrganisationEligibilitySnapshots { get; } =
         database.GetCollection<OrganisationEligibilitySnapshot>(nameof(OrganisationEligibilitySnapshot));
 
+    public IMongoCollection<OrganisationObligationSummary> OrganisationObligationSummaries { get; } =
+        database.GetCollection<OrganisationObligationSummary>(nameof(OrganisationObligationSummary));
+
     public async Task<TResult> ExecuteTransaction<TResult>(
         Func<IClientSessionHandle, CancellationToken, Task<TResult>> callback,
         string transactionName,
