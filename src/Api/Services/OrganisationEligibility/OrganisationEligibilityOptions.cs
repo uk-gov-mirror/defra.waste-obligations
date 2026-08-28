@@ -17,6 +17,8 @@ public record OrganisationEligibilityOptions
     [Range(1, 300)]
     public int RefreshLeaseRenewalIntervalSeconds { get; init; } = 60;
 
+    public TimeSpan MaximumAllowedStaleness { get; init; } = TimeSpan.FromHours(2);
+
     [Range(1, 1000)]
     public int AccountReferenceNumberBatchSize { get; init; } = 100;
 
