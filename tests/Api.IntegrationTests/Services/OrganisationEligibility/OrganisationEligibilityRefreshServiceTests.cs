@@ -100,6 +100,33 @@ public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Refresh_WhenCurrentObligationSummaryExists_ShouldCopyMetricsToThePromotedRows()
+    {
+        var organisationId = Guid.NewGuid();
+        ArrangeSource(organisationId);
+        ArrangeDirectProducerReference(organisationId, "051829");
+        await OrganisationObligationSummaries.InsertOneAsync(
+            new OrganisationObligationSummary
+            {
+                OrganisationId = organisationId,
+                ObligationYear = 2026,
+                RecyclingObligationsMet = false,
+                ObligationCoveragePercentage = 80,
+            },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        var subject = CreateSubject();
+
+        var result = await subject.Refresh(TestContext.Current.CancellationToken);
+
+        var row = await OrganisationComplianceDeclarationEligibilities
+            .Find(x => x.Generation == result.ActiveGeneration)
+            .SingleAsync(TestContext.Current.CancellationToken);
+        row.RecyclingObligationsMet.Should().BeFalse();
+        row.ObligationCoveragePercentage.Should().Be(80);
+    }
+
+    [Fact]
     public async Task Refresh_WhenInitialReferenceLookupFails_ShouldNotPromoteGeneration()
     {
         var organisationId = Guid.NewGuid();

@@ -216,29 +216,35 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
             timeout: 5,
             delay: TimeSpan.FromMilliseconds(50)
         );
+        await AsyncWaiter.WaitForAsync(
+            async () =>
+            {
+                var results = await AuditEvents.Find(_ => true).ToListAsync(TestContext.Current.CancellationToken);
+                results
+                    .Single(x => x.EventId == firstAuditEvent.EventId)
+                    .Dispatches[Analytics]
+                    .Should()
+                    .BeEquivalentTo(
+                        new AuditEventDispatch
+                        {
+                            Status = AuditEventDispatchStatus.Failed,
+                            Date = failedAt.UtcDateTime,
+                            Message = message,
+                            AttemptCount = 1,
+                            NextAttemptAt = failedAt.UtcDateTime.AddMinutes(1),
+                        }
+                    );
+                results
+                    .Single(x => x.EventId == secondAuditEvent.EventId)
+                    .Dispatches[Analytics]
+                    .Status.Should()
+                    .Be(AuditEventDispatchStatus.Dispatched);
+                logger.Messages.Should().ContainSingle(x => x == "Processed 1 audit events for analytics-test");
+            },
+            timeout: 5,
+            delay: TimeSpan.FromMilliseconds(50)
+        );
         await subject.StopAsync(TestContext.Current.CancellationToken);
-
-        var results = await AuditEvents.Find(_ => true).ToListAsync(TestContext.Current.CancellationToken);
-        results
-            .Single(x => x.EventId == firstAuditEvent.EventId)
-            .Dispatches[Analytics]
-            .Should()
-            .BeEquivalentTo(
-                new AuditEventDispatch
-                {
-                    Status = AuditEventDispatchStatus.Failed,
-                    Date = failedAt.UtcDateTime,
-                    Message = message,
-                    AttemptCount = 1,
-                    NextAttemptAt = failedAt.UtcDateTime.AddMinutes(1),
-                }
-            );
-        results
-            .Single(x => x.EventId == secondAuditEvent.EventId)
-            .Dispatches[Analytics]
-            .Status.Should()
-            .Be(AuditEventDispatchStatus.Dispatched);
-        logger.Messages.Should().ContainSingle(x => x == "Processed 1 audit events for analytics-test");
     }
 
     [Fact]
