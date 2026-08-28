@@ -982,6 +982,140 @@
           }
         }
       }
+    },
+    "/compliance-declarations/unsubmitted": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search unsubmitted compliance declarations",
+        "description": "Returns eligible organisations without a submitted or accepted compliance declaration",
+        "operationId": "SearchUnsubmittedComplianceDeclarations",
+        "parameters": [
+          {
+            "name": "obligationYear",
+            "in": "query",
+            "schema": {
+              "maximum": 2050,
+              "minimum": 2023,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "registrationType",
+            "in": "query",
+            "description": "Comma separated list of organisation registration type",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Case-insensitive partial match on organisation name or reference number",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma separated sort fields in priority order. Each field must use the format Field[asc] or Field[desc]. Fields: OrganisationName, OrganisationReferenceNumber, RecyclingObligations, PercentageMet",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (1-based), defaults to 1 if not specified",
+            "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of items per page, defaults to 20 if not specified, max of 100",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsubmittedOrganisationsPaged"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1752,6 +1886,85 @@
           "ComplianceScheme",
           null
         ]
+      },
+      "UnsubmittedOrganisation": {
+        "required": [
+          "organisationName",
+          "organisationReferenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "organisationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "obligationYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "registrationType": {
+            "$ref": "#/components/schemas/RegistrationType"
+          },
+          "organisationName": {
+            "type": "string"
+          },
+          "organisationReferenceNumber": {
+            "type": "string"
+          },
+          "recyclingObligationsMet": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "obligationCoveragePercentage": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "UnsubmittedOrganisationsPaged": {
+        "type": "object",
+        "properties": {
+          "unsubmittedOrganisations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnsubmittedOrganisation"
+            }
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
       },
       "UpdateComplianceDeclarationRequest": {
         "required": [
