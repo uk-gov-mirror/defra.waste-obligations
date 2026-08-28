@@ -1,0 +1,16 @@
+{
+  "unsubmittedOrganisations": [
+    {
+      "organisationId": "Guid_1",
+      "obligationYear": 2026,
+      "registrationType": "DirectProducer",
+      "organisationName": "Alpha Packaging",
+      "organisationReferenceNumber": "100001",
+      "recyclingObligationsMet": true,
+      "obligationCoveragePercentage": 80
+    }
+  ],
+  "total": 6,
+  "page": 2,
+  "pageSize": 5
+}

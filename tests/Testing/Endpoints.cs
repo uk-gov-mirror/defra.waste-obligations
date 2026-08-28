@@ -74,6 +74,8 @@ public static class Endpoints
 
         public static string Search(EndpointQuery? query = null) => $"{Root}{query}";
 
+        public static string Unsubmitted(EndpointQuery? query = null) => $"{Root}/unsubmitted{query}";
+
         public static string Delete(string id) => $"{Root}/{id}";
     }
 }

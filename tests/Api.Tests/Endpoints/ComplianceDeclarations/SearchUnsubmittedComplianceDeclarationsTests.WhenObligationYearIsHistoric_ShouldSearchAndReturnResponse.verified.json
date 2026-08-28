@@ -1,0 +1,16 @@
+{
+  "unsubmittedOrganisations": [
+    {
+      "organisationId": "Guid_1",
+      "obligationYear": 2025,
+      "registrationType": "DirectProducer",
+      "organisationName": "Historic Packaging",
+      "organisationReferenceNumber": "100003",
+      "recyclingObligationsMet": null,
+      "obligationCoveragePercentage": 0
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}

@@ -1,0 +1,11 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "Search": [
+      "The field Search must be a string with a maximum length of 100."
+    ]
+  },
+  "traceId": "{Scrubbed}"
+}
