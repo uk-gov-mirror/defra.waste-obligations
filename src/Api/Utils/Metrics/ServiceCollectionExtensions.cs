@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRequestMetrics, RequestMetrics>();
         services.AddSingleton<IComplianceDeclarationMetrics, ComplianceDeclarationMetrics>();
         services.AddSingleton<IEmailMetrics, EmailMetrics>();
+        services.AddSingleton<IOrganisationObligationHydrationMetrics, OrganisationObligationHydrationMetrics>();
         services.AddSingleton<IAuditEventMetrics, AuditEventMetrics>();
 
         return services;

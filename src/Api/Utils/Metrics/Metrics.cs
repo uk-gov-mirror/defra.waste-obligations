@@ -31,6 +31,14 @@ public static class Metrics
         public const string AuditEventSnsPublishErrors = nameof(AuditEventSnsPublishErrors);
         public const string AuditEventSnsPublishDuration = nameof(AuditEventSnsPublishDuration);
         public const string AuditEventSnsPublishLatency = nameof(AuditEventSnsPublishLatency);
+        public const string OrganisationObligationHydrationFailure = nameof(OrganisationObligationHydrationFailure);
+        public const string OrganisationObligationHydrationSuccess = nameof(OrganisationObligationHydrationSuccess);
+        public const string OrganisationObligationHydrationStaleSummaryAge = nameof(
+            OrganisationObligationHydrationStaleSummaryAge
+        );
+        public const string OrganisationObligationHydrationStaleSummaryCount = nameof(
+            OrganisationObligationHydrationStaleSummaryCount
+        );
     }
 
     public static class Tags
