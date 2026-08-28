@@ -4,8 +4,8 @@
       "organisationId": "Guid_1",
       "obligationYear": 2025,
       "registrationType": "DirectProducer",
-      "organisationName": "Historic Packaging",
-      "organisationReferenceNumber": "100003",
+      "name": "Historic Packaging",
+      "referenceNumber": "100003",
       "recyclingObligationsMet": null,
       "obligationCoveragePercentage": 0
     }

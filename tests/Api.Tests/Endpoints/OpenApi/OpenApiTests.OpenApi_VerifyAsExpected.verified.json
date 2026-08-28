@@ -1889,8 +1889,8 @@
       },
       "UnsubmittedOrganisation": {
         "required": [
-          "organisationName",
-          "organisationReferenceNumber"
+          "name",
+          "referenceNumber"
         ],
         "type": "object",
         "properties": {
@@ -1909,10 +1909,10 @@
           "registrationType": {
             "$ref": "#/components/schemas/RegistrationType"
           },
-          "organisationName": {
+          "name": {
             "type": "string"
           },
-          "organisationReferenceNumber": {
+          "referenceNumber": {
             "type": "string"
           },
           "recyclingObligationsMet": {

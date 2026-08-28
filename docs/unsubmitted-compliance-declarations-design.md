@@ -361,7 +361,7 @@ The unsubmitted query reads only the active generation and needs no Account call
 
 This is entirely local Mongo work. The same unanchored contains limitation remains, but no per-candidate join is required. During the day-one Account backfill, an organisation with a pending reference is excluded from the view altogether; it cannot be found by name or reference until a later promoted generation contains its resolved reference. Monitoring must expose the excluded unresolved-row count and oldest pending age. There is deliberately no request-time fallback to Account: that would make view membership depend on downstream availability and reintroduce HTTP calls into search.
 
-The endpoint has its own `UnsubmittedOrganisationSortField` and `UnsubmittedOrganisationSortDirection`; it does not reuse the declaration-search enums. Like declaration search, it accepts a comma-separated, priority-ordered list of distinct `Field[asc|desc]` terms. `OrganisationName`, `OrganisationReferenceNumber`, `RecyclingObligations`, and `PercentageMet` are valid for both registration types. The endpoint contract is not constrained by the current frontend's displayed columns. Regulation 43 and date submitted are declaration fields and are not valid unsubmitted sorts.
+The endpoint has its own `UnsubmittedOrganisationSortField` and `UnsubmittedOrganisationSortDirection`; it does not reuse the declaration-search enums. Like declaration search, it accepts a comma-separated, priority-ordered list of distinct `Field[asc|desc]` terms. Its sort-field names match the response fields: `Name`, `ReferenceNumber`, `RecyclingObligationsMet`, and `ObligationCoveragePercentage`. They are valid for both registration types. The endpoint contract is not constrained by the current frontend's displayed columns. Regulation 43 and date submitted are declaration fields and are not valid unsubmitted sorts.
 
 Migration `010_OrganisationEligibilityIndexes` creates the final eligibility indexes directly, rather than retaining transitional scope-first indexes. Migration `011_OrganisationObligationSummaryIndexes` creates the summary indexes. This branch has not been deployed, so no index-replacement or metric-backfill migration is needed:
 
@@ -847,7 +847,7 @@ GET /compliance-declarations/unsubmitted
     &search=acme
     &page=1
     &pageSize=20
-    &sort=OrganisationName[asc]
+    &sort=Name[asc]
 ```
 
 This is the implemented public route. Its internal equivalent is:
@@ -872,7 +872,7 @@ The endpoint accepts only these query parameters in this first design:
 | `search` | Optional generic organisation search, limited to 100 characters. It follows the current declaration search pattern: escaped, case-insensitive contains matching across raw fields available in this projection. An empty or whitespace-only term is treated as no search filter. |
 | `page` | Optional 1-based page number; default `1`. |
 | `pageSize` | Optional; default `20`, range `1`–`100`, matching declaration search. |
-| `sort` | Optional comma-separated, priority-ordered list of distinct `Field[asc|desc]` terms using the endpoint-specific unsubmitted sort enums. `OrganisationName`, `OrganisationReferenceNumber`, `RecyclingObligations`, and `PercentageMet` are valid for both types. The default is `OrganisationName[asc]`. |
+| `sort` | Optional comma-separated, priority-ordered list of distinct `Field[asc|desc]` terms using the endpoint-specific unsubmitted sort enums. `Name`, `ReferenceNumber`, `RecyclingObligationsMet`, and `ObligationCoveragePercentage` are valid for both types. The default is `Name[asc]`. |
 
 It does not accept `status` because status is an internal input to the inference, not a filter users may override.
 
@@ -890,13 +890,13 @@ The initial response contains the eligibility fields plus the locally hydrated o
 
 ```json
 {
-  "unsubmittedComplianceDeclarations": [
+  "unsubmittedOrganisations": [
     {
       "organisationId": "...",
       "obligationYear": 2026,
       "registrationType": "DirectProducer",
-      "organisationName": "...",
-      "organisationReferenceNumber": "518293",
+      "name": "...",
+      "referenceNumber": "518293",
       "recyclingObligationsMet": null,
       "obligationCoveragePercentage": 0
     }
@@ -1056,10 +1056,10 @@ The present Not submitted table has organisation name, organisation reference nu
 
 | Field | Sort rule |
 | --- | --- |
-| Organisation name | `OrganisationName[asc|desc]` for both types. |
-| Organisation reference number | `OrganisationReferenceNumber[asc|desc]` for both types. The frontend's current label/key should be corrected from “Organisation ID”. |
-| Recycling obligations | `RecyclingObligations[asc|desc]` for both types. |
-| Percentage met | `PercentageMet[asc|desc]` for both types. |
+| Organisation name | `Name[asc|desc]` for both types. |
+| Organisation reference number | `ReferenceNumber[asc|desc]` for both types. The frontend's current label/key should be corrected from “Organisation ID”. |
+| Recycling obligations | `RecyclingObligationsMet[asc|desc]` for both types. |
+| Obligation coverage percentage | `ObligationCoveragePercentage[asc|desc]` for both types. |
 | Regulation 43 / date submitted | Not valid for this derived result. |
 
 The organisation-obligation summary is deliberately separate from the query aggregate because it is the one-per-organisation/year polling record. Its two public metrics are intentionally copied into the eligibility aggregate for direct query performance. An event-driven PRN status/calculation change feed is the best future trigger, while the initial bounded-staleness sweep is the fallback. Calling the organisation-obligation calculation once per row is not acceptable for either the list or the complete CSV.

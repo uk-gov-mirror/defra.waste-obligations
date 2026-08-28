@@ -36,9 +36,9 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                 Arg.Is<IReadOnlyCollection<UnsubmittedOrganisationSort>?>(x =>
                     x != null
                     && x.Count == 2
-                    && x.ElementAt(0).Field == UnsubmittedOrganisationSortField.OrganisationName
+                    && x.ElementAt(0).Field == UnsubmittedOrganisationSortField.Name
                     && x.ElementAt(0).Direction == UnsubmittedOrganisationSortDirection.Descending
-                    && x.ElementAt(1).Field == UnsubmittedOrganisationSortField.PercentageMet
+                    && x.ElementAt(1).Field == UnsubmittedOrganisationSortField.ObligationCoveragePercentage
                     && x.ElementAt(1).Direction == UnsubmittedOrganisationSortDirection.Ascending
                 ),
                 page: 2,
@@ -72,7 +72,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                     .New.Where(EndpointFilter.ObligationYear(2026))
                     .Where(EndpointFilter.RegistrationType("DirectProducer"))
                     .Where(EndpointFilter.Search("alpha"))
-                    .Where(EndpointFilter.Sort("OrganisationName[desc],PercentageMet[asc]"))
+                    .Where(EndpointFilter.Sort("Name[desc],ObligationCoveragePercentage[asc]"))
                     .Where(EndpointFilter.Page(2))
                     .Where(EndpointFilter.PageSize(5))
             ),
@@ -207,7 +207,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
     }
 
     [Fact]
-    public async Task WhenPercentageMetSortIsValidForDirectProducer_ShouldPassTheDedicatedSortToTheService()
+    public async Task WhenObligationCoveragePercentageSortIsValidForDirectProducer_ShouldPassTheDedicatedSortToTheService()
     {
         UnsubmittedOrganisationsService
             .Search(
@@ -219,7 +219,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                 Arg.Is<IReadOnlyCollection<UnsubmittedOrganisationSort>?>(x =>
                     x != null
                     && x.Count == 1
-                    && x.Single().Field == UnsubmittedOrganisationSortField.PercentageMet
+                    && x.Single().Field == UnsubmittedOrganisationSortField.ObligationCoveragePercentage
                     && x.Single().Direction == UnsubmittedOrganisationSortDirection.Ascending
                 ),
                 page: 1,
@@ -234,7 +234,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                 EndpointQuery
                     .New.Where(EndpointFilter.ObligationYear(2026))
                     .Where(EndpointFilter.RegistrationType("DirectProducer"))
-                    .Where(EndpointFilter.Sort("PercentageMet[asc]"))
+                    .Where(EndpointFilter.Sort("ObligationCoveragePercentage[asc]"))
             ),
             TestContext.Current.CancellationToken
         );
@@ -326,7 +326,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
     }
 
     [Fact]
-    public async Task WhenPercentageMetSortIsRequestedByComplianceScheme_ShouldPassTheDedicatedSortToTheService()
+    public async Task WhenObligationCoveragePercentageSortIsRequestedByComplianceScheme_ShouldPassTheDedicatedSortToTheService()
     {
         UnsubmittedOrganisationsService
             .Search(
@@ -338,7 +338,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                 Arg.Is<IReadOnlyCollection<UnsubmittedOrganisationSort>?>(x =>
                     x != null
                     && x.Count == 1
-                    && x.Single().Field == UnsubmittedOrganisationSortField.PercentageMet
+                    && x.Single().Field == UnsubmittedOrganisationSortField.ObligationCoveragePercentage
                     && x.Single().Direction == UnsubmittedOrganisationSortDirection.Ascending
                 ),
                 page: 1,
@@ -353,7 +353,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                 EndpointQuery
                     .New.Where(EndpointFilter.ObligationYear(2026))
                     .Where(EndpointFilter.RegistrationType("ComplianceScheme"))
-                    .Where(EndpointFilter.Sort("PercentageMet[asc]"))
+                    .Where(EndpointFilter.Sort("ObligationCoveragePercentage[asc]"))
             ),
             TestContext.Current.CancellationToken
         );
@@ -370,7 +370,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests(
                 Arg.Is<IReadOnlyCollection<UnsubmittedOrganisationSort>?>(x =>
                     x != null
                     && x.Count == 1
-                    && x.Single().Field == UnsubmittedOrganisationSortField.PercentageMet
+                    && x.Single().Field == UnsubmittedOrganisationSortField.ObligationCoveragePercentage
                     && x.Single().Direction == UnsubmittedOrganisationSortDirection.Ascending
                 ),
                 1,

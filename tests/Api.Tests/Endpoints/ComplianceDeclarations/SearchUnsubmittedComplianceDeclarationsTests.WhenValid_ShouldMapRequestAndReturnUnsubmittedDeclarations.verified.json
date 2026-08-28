@@ -4,8 +4,8 @@
       "organisationId": "Guid_1",
       "obligationYear": 2026,
       "registrationType": "DirectProducer",
-      "organisationName": "Alpha Packaging",
-      "organisationReferenceNumber": "100001",
+      "name": "Alpha Packaging",
+      "referenceNumber": "100001",
       "recyclingObligationsMet": true,
       "obligationCoveragePercentage": 80
     }

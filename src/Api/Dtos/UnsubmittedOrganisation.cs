@@ -13,11 +13,11 @@ public record UnsubmittedOrganisation
     [JsonPropertyName("registrationType")]
     public RegistrationType RegistrationType { get; init; }
 
-    [JsonPropertyName("organisationName")]
-    public required string OrganisationName { get; init; }
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
 
-    [JsonPropertyName("organisationReferenceNumber")]
-    public required string OrganisationReferenceNumber { get; init; }
+    [JsonPropertyName("referenceNumber")]
+    public required string ReferenceNumber { get; init; }
 
     [JsonPropertyName("recyclingObligationsMet")]
     public bool? RecyclingObligationsMet { get; init; }

@@ -16,9 +16,13 @@ public class UnsubmittedOrganisationSortParserTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("OrganisationName[ascending]")]
+    [InlineData("Name[ascending]")]
+    [InlineData("OrganisationName[asc]")]
+    [InlineData("OrganisationReferenceNumber[asc]")]
+    [InlineData("RecyclingObligations[asc]")]
+    [InlineData("PercentageMet[asc]")]
     [InlineData("DateSubmitted[asc]")]
-    [InlineData("OrganisationName[asc],OrganisationName[desc]")]
+    [InlineData("Name[asc],Name[desc]")]
     public void TryParse_WhenSortIsInvalid_ShouldReturnFalse(string value)
     {
         var parsed = UnsubmittedOrganisationSortParser.TryParse(value, out var sort);
@@ -28,10 +32,10 @@ public class UnsubmittedOrganisationSortParserTests
     }
 
     [Theory]
-    [InlineData("OrganisationName[asc]", UnsubmittedOrganisationSortField.OrganisationName)]
-    [InlineData("OrganisationReferenceNumber[desc]", UnsubmittedOrganisationSortField.OrganisationReferenceNumber)]
-    [InlineData("RecyclingObligations[asc]", UnsubmittedOrganisationSortField.RecyclingObligations)]
-    [InlineData("PercentageMet[desc]", UnsubmittedOrganisationSortField.PercentageMet)]
+    [InlineData("Name[asc]", UnsubmittedOrganisationSortField.Name)]
+    [InlineData("ReferenceNumber[desc]", UnsubmittedOrganisationSortField.ReferenceNumber)]
+    [InlineData("RecyclingObligationsMet[asc]", UnsubmittedOrganisationSortField.RecyclingObligationsMet)]
+    [InlineData("ObligationCoveragePercentage[desc]", UnsubmittedOrganisationSortField.ObligationCoveragePercentage)]
     public void Parse_WhenSortIsValid_ShouldReturnUnsubmittedOrganisationSort(
         string value,
         UnsubmittedOrganisationSortField field
@@ -57,7 +61,7 @@ public class UnsubmittedOrganisationSortParserTests
     public void Parse_WhenMultipleSortFieldsAreValid_ShouldPreservePriorityOrder()
     {
         var sort = UnsubmittedOrganisationSortParser.Parse(
-            "PercentageMet[desc],OrganisationName[asc],OrganisationReferenceNumber[desc]"
+            "ObligationCoveragePercentage[desc],Name[asc],ReferenceNumber[desc]"
         );
 
         sort.Should()
@@ -65,17 +69,17 @@ public class UnsubmittedOrganisationSortParserTests
                 [
                     new UnsubmittedOrganisationSort
                     {
-                        Field = UnsubmittedOrganisationSortField.PercentageMet,
+                        Field = UnsubmittedOrganisationSortField.ObligationCoveragePercentage,
                         Direction = UnsubmittedOrganisationSortDirection.Descending,
                     },
                     new UnsubmittedOrganisationSort
                     {
-                        Field = UnsubmittedOrganisationSortField.OrganisationName,
+                        Field = UnsubmittedOrganisationSortField.Name,
                         Direction = UnsubmittedOrganisationSortDirection.Ascending,
                     },
                     new UnsubmittedOrganisationSort
                     {
-                        Field = UnsubmittedOrganisationSortField.OrganisationReferenceNumber,
+                        Field = UnsubmittedOrganisationSortField.ReferenceNumber,
                         Direction = UnsubmittedOrganisationSortDirection.Descending,
                     },
                 ],

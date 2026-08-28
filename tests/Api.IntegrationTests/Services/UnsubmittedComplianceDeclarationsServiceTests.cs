@@ -57,7 +57,7 @@ public class UnsubmittedOrganisationsServiceTests : IntegrationTestBase
             [
                 new UnsubmittedOrganisationSort
                 {
-                    Field = UnsubmittedOrganisationSortField.OrganisationName,
+                    Field = UnsubmittedOrganisationSortField.Name,
                     Direction = UnsubmittedOrganisationSortDirection.Descending,
                 },
             ],
@@ -329,7 +329,7 @@ public class UnsubmittedOrganisationsServiceTests : IntegrationTestBase
             [
                 new UnsubmittedOrganisationSort
                 {
-                    Field = UnsubmittedOrganisationSortField.OrganisationReferenceNumber,
+                    Field = UnsubmittedOrganisationSortField.ReferenceNumber,
                     Direction = UnsubmittedOrganisationSortDirection.Ascending,
                 },
             ],
@@ -344,7 +344,7 @@ public class UnsubmittedOrganisationsServiceTests : IntegrationTestBase
             [
                 new UnsubmittedOrganisationSort
                 {
-                    Field = UnsubmittedOrganisationSortField.RecyclingObligations,
+                    Field = UnsubmittedOrganisationSortField.RecyclingObligationsMet,
                     Direction = UnsubmittedOrganisationSortDirection.Ascending,
                 },
             ],
@@ -359,7 +359,7 @@ public class UnsubmittedOrganisationsServiceTests : IntegrationTestBase
             [
                 new UnsubmittedOrganisationSort
                 {
-                    Field = UnsubmittedOrganisationSortField.PercentageMet,
+                    Field = UnsubmittedOrganisationSortField.ObligationCoveragePercentage,
                     Direction = UnsubmittedOrganisationSortDirection.Descending,
                 },
             ],
@@ -407,12 +407,12 @@ public class UnsubmittedOrganisationsServiceTests : IntegrationTestBase
             [
                 new UnsubmittedOrganisationSort
                 {
-                    Field = UnsubmittedOrganisationSortField.PercentageMet,
+                    Field = UnsubmittedOrganisationSortField.ObligationCoveragePercentage,
                     Direction = UnsubmittedOrganisationSortDirection.Descending,
                 },
                 new UnsubmittedOrganisationSort
                 {
-                    Field = UnsubmittedOrganisationSortField.OrganisationReferenceNumber,
+                    Field = UnsubmittedOrganisationSortField.ReferenceNumber,
                     Direction = UnsubmittedOrganisationSortDirection.Ascending,
                 },
             ],

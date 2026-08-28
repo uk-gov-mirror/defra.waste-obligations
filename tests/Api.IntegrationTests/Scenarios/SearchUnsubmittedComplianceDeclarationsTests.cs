@@ -59,7 +59,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests : IntegrationTestBase
                     .New.Where(EndpointFilter.ObligationYear(2026))
                     .Where(EndpointFilter.RegistrationType("DirectProducer"))
                     .Where(EndpointFilter.Search("pack"))
-                    .Where(EndpointFilter.Sort("OrganisationName[desc]"))
+                    .Where(EndpointFilter.Sort("Name[desc]"))
                     .Where(EndpointFilter.PageSize(1))
             ),
             TestContext.Current.CancellationToken
@@ -77,7 +77,7 @@ public class SearchUnsubmittedComplianceDeclarationsTests : IntegrationTestBase
         result.UnsubmittedOrganisations.Should().ContainSingle();
         var row = result.UnsubmittedOrganisations.Single();
         row.OrganisationId.Should().Be(secondIncludedOrganisationId);
-        row.OrganisationReferenceNumber.Should().Be("100004");
+        row.ReferenceNumber.Should().Be("100004");
         row.ObligationCoveragePercentage.Should().Be(80);
         row.RecyclingObligationsMet.Should().BeTrue();
         await VerifyJson(responseBody);

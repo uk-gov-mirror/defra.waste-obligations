@@ -4,8 +4,8 @@
       "organisationId": "Guid_1",
       "obligationYear": 2026,
       "registrationType": "ComplianceScheme",
-      "organisationName": "Bravo Scheme",
-      "organisationReferenceNumber": "200001",
+      "name": "Bravo Scheme",
+      "referenceNumber": "200001",
       "recyclingObligationsMet": null,
       "obligationCoveragePercentage": 0
     }

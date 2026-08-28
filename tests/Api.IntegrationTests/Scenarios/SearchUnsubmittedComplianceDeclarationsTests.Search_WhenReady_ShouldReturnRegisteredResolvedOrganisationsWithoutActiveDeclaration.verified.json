@@ -4,8 +4,8 @@
       "organisationId": "Guid_1",
       "obligationYear": 2026,
       "registrationType": "DirectProducer",
-      "organisationName": "Zeta Packaging",
-      "organisationReferenceNumber": "100004",
+      "name": "Zeta Packaging",
+      "referenceNumber": "100004",
       "recyclingObligationsMet": true,
       "obligationCoveragePercentage": 80
     }

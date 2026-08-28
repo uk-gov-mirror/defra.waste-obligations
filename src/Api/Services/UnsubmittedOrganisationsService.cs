@@ -132,7 +132,7 @@ public class UnsubmittedOrganisationsService(
 
         var sortDefinitions = sort.Select(BuildSort).ToList();
         var tieBreakerDirection = sort.Last().Direction;
-        if (!sort.Any(x => x.Field is UnsubmittedOrganisationSortField.OrganisationName))
+        if (!sort.Any(x => x.Field is UnsubmittedOrganisationSortField.Name))
         {
             sortDefinitions.Add(
                 SortByDirection(
@@ -159,16 +159,16 @@ public class UnsubmittedOrganisationsService(
     ) =>
         sort.Field switch
         {
-            UnsubmittedOrganisationSortField.OrganisationName => SortByDirection(
+            UnsubmittedOrganisationSortField.Name => SortByDirection(
                 sort.Direction,
                 Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Ascending(x => x.Name),
                 Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Descending(x => x.Name)
             ),
-            UnsubmittedOrganisationSortField.OrganisationReferenceNumber => sort.Direction
+            UnsubmittedOrganisationSortField.ReferenceNumber => sort.Direction
             is UnsubmittedOrganisationSortDirection.Ascending
                 ? Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Ascending(x => x.ReferenceNumber)
                 : Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Descending(x => x.ReferenceNumber),
-            UnsubmittedOrganisationSortField.RecyclingObligations => sort.Direction
+            UnsubmittedOrganisationSortField.RecyclingObligationsMet => sort.Direction
             is UnsubmittedOrganisationSortDirection.Ascending
                 ? Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Ascending(x =>
                     x.RecyclingObligationsMet
@@ -176,7 +176,7 @@ public class UnsubmittedOrganisationsService(
                 : Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Descending(x =>
                     x.RecyclingObligationsMet
                 ),
-            UnsubmittedOrganisationSortField.PercentageMet => sort.Direction
+            UnsubmittedOrganisationSortField.ObligationCoveragePercentage => sort.Direction
             is UnsubmittedOrganisationSortDirection.Ascending
                 ? Builders<OrganisationComplianceDeclarationEligibilityEntity>.Sort.Ascending(x =>
                     x.ObligationCoveragePercentage
