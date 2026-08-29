@@ -321,7 +321,7 @@ public class AuditEventDispatchServiceTests : IntegrationTestBase
         IAuditEventMetrics? auditEventMetrics = null
     ) =>
         new(
-            new AuditEventDbContext(GetMongoDatabase()),
+            new AuditEventDbContext(GetMongoApplicationDatabase()),
             timeProvider ?? new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)),
             auditEventMetrics ?? Substitute.For<IAuditEventMetrics>(),
             logger ?? Substitute.For<ILogger<AuditEventDispatchService>>()

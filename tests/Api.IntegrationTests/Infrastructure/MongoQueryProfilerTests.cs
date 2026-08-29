@@ -8,6 +8,30 @@ namespace Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 public class MongoQueryProfilerTests : IntegrationTestBase
 {
     [Fact]
+    public async Task Profile_WhenTheApiUsesMongo_ShouldNotRecordTheApiContainerOperations()
+    {
+        await ComplianceDeclarations.InsertManyAsync(
+            Enumerable.Range(0, 100).Select(_ => ComplianceDeclarationFixture.Default().Create()),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        await using var profiler = await MongoQueryProfiler.Start(
+            GetMongoDatabase(),
+            [MongoQueryProfiler.IntegrationTestApplicationName],
+            TestContext.Current.CancellationToken
+        );
+        using var client = CreateClient();
+        var response = await client.GetAsync(
+            "/compliance-declarations?obligationYear=2026&status=Submitted",
+            TestContext.Current.CancellationToken
+        );
+        var profile = await profiler.Stop(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        profile.Queries.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Profile_WhenAnApiQueryUsesAnIndex_ShouldRecordTheQueryPlan()
     {
         var declarations = Enumerable

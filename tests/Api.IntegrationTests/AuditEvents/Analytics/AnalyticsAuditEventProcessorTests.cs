@@ -31,7 +31,7 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
         var auditEvent = CreateAuditEvent("event-1", 1) with { TraceId = TraceId };
         await AuditEvents.InsertOneAsync(auditEvent, cancellationToken: TestContext.Current.CancellationToken);
         var subject = CreateSubject(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             timeProvider,
             sender,
             auditEventMetrics: auditEventMetrics,
@@ -88,7 +88,7 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
         );
         await AuditEvents.InsertOneAsync(auditEvent, cancellationToken: TestContext.Current.CancellationToken);
         var sender = new RecordingAnalyticsEventSender();
-        var subject = CreateSubject(GetMongoDatabase(), new FakeTimeProvider(), sender);
+        var subject = CreateSubject(GetMongoApplicationDatabase(), new FakeTimeProvider(), sender);
 
         await subject.StartAsync(TestContext.Current.CancellationToken);
         await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
@@ -123,7 +123,7 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
             TraceId = TraceId,
         };
         await AuditEvents.InsertOneAsync(auditEvent, cancellationToken: TestContext.Current.CancellationToken);
-        var subject = CreateSubject(GetMongoDatabase(), timeProvider, sender, logger: logger);
+        var subject = CreateSubject(GetMongoApplicationDatabase(), timeProvider, sender, logger: logger);
 
         await subject.StartAsync(TestContext.Current.CancellationToken);
         await sender.WaitForSend(TestContext.Current.CancellationToken);
@@ -165,7 +165,7 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
             },
         };
         var logger = new RecordingLogger<AnalyticsAuditEventProcessor>();
-        var subject = CreateSubject(GetMongoDatabase(), new FakeTimeProvider(), sender, logger: logger);
+        var subject = CreateSubject(GetMongoApplicationDatabase(), new FakeTimeProvider(), sender, logger: logger);
 
         await subject.StartAsync(TestContext.Current.CancellationToken);
         await sender.WaitForSend(TestContext.Current.CancellationToken);
@@ -198,7 +198,12 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
             },
         };
         var logger = new RecordingLogger<AnalyticsAuditEventProcessor>();
-        var subject = CreateSubject(GetMongoDatabase(), new FakeTimeProvider(failedAt), sender, logger: logger);
+        var subject = CreateSubject(
+            GetMongoApplicationDatabase(),
+            new FakeTimeProvider(failedAt),
+            sender,
+            logger: logger
+        );
 
         await subject.StartAsync(TestContext.Current.CancellationToken);
 
@@ -256,7 +261,7 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
         var logger = new RecordingLogger<AnalyticsAuditEventProcessor>();
         var auditEventMetrics = Substitute.For<IAuditEventMetrics>();
         var subject = CreateSubject(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             new FakeTimeProvider(),
             sender,
             auditEventMetrics: auditEventMetrics,
@@ -302,7 +307,7 @@ public class AnalyticsAuditEventProcessorTests : IntegrationTestBase
         var logger = new RecordingLogger<AnalyticsAuditEventProcessor>();
         var auditEventMetrics = Substitute.For<IAuditEventMetrics>();
         var subject = CreateSubject(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             new FakeTimeProvider(),
             sender,
             auditEventMetrics: auditEventMetrics,

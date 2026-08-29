@@ -125,7 +125,7 @@ public class AuditEventLeaseServiceTests : IntegrationTestBase
 
     private static AuditEventLeaseService CreateSubject(TimeProvider timeProvider) =>
         new(
-            new AuditEventDbContext(GetMongoDatabase()),
+            new AuditEventDbContext(GetMongoApplicationDatabase()),
             timeProvider,
             Substitute.For<ILogger<AuditEventLeaseService>>()
         );

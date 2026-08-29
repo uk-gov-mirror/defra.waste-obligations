@@ -2,6 +2,7 @@ using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
+using Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 using Defra.WasteObligations.Api.Services;
 using Defra.WasteObligations.Api.Utils.Logging;
 using Defra.WasteObligations.Api.Utils.Metrics;
@@ -24,13 +25,16 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
 {
     private const string Entity = "compliance_declaration";
     private const string MatchingReferenceNumber = "100245";
+    private const string ComplianceDeclarationNamespace = "waste-obligations.ComplianceDeclaration";
+    private const string OrganisationSearchFilter =
+        "$or:[{organisation.complianceSchemeName:?},{organisation.name:?},{organisation.referenceNumber:?},{organisation.schemeOperatorName:?}]";
 
     private ComplianceDeclarationService Subject { get; }
     private IComplianceDeclarationMetrics ComplianceDeclarationMetrics { get; }
 
     public ComplianceDeclarationServiceTests()
     {
-        var database = GetMongoDatabase();
+        var database = GetMongoApplicationDatabase();
         var auditEventDbContext = new AuditEventDbContext(database);
         var dbContext = CreateDbContext(database);
         var auditEventService = new AuditEventService(
@@ -233,7 +237,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     [Fact]
     public async Task Create_WhenAuditEventFails_ShouldAbortTransaction()
     {
-        var database = GetMongoDatabase();
+        var database = GetMongoApplicationDatabase();
         var complianceDeclarationMetrics = Substitute.For<IComplianceDeclarationMetrics>();
         var dbContext = CreateDbContext(database);
         var subject = new ComplianceDeclarationService(
@@ -404,7 +408,9 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     [Fact]
     public async Task Delete_WhenDatabaseReadPreferenceIsSecondaryPreferred_ShouldRemove()
     {
-        var subject = CreateSubject(GetMongoDatabase().WithReadPreference(ReadPreference.SecondaryPreferred));
+        var subject = CreateSubject(
+            GetMongoApplicationDatabase().WithReadPreference(ReadPreference.SecondaryPreferred)
+        );
         var initial = await subject.Create(
             ComplianceDeclarationFixture.DirectProducer().Create(),
             TestContext.Current.CancellationToken
@@ -448,7 +454,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     [Fact]
     public async Task Delete_WhenAuditEventFails_ShouldAbortTransaction()
     {
-        var database = GetMongoDatabase();
+        var database = GetMongoApplicationDatabase();
         var complianceDeclarationMetrics = Substitute.For<IComplianceDeclarationMetrics>();
         var dbContext = CreateDbContext(database);
         var subject = new ComplianceDeclarationService(
@@ -594,7 +600,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             TestContext.Current.CancellationToken
         );
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery { ObligationYear = targetYear },
             1,
             10,
@@ -622,7 +628,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             TestContext.Current.CancellationToken
         );
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery
             {
                 Status = [ComplianceDeclarationStatus.Submitted, ComplianceDeclarationStatus.Cancelled],
@@ -658,7 +664,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             TestContext.Current.CancellationToken
         );
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery { RegistrationType = registrationTypes },
             1,
             10,
@@ -723,7 +729,10 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     {
         await CreateMatchingAndNonMatchingDeclarations();
 
-        var result = await Search(new ComplianceDeclarationSearchQuery { Search = term });
+        var result = await Search(
+            new ComplianceDeclarationSearchQuery { Search = term },
+            TestContext.Current.CancellationToken
+        );
 
         result.ComplianceDeclarations.Should().ContainSingle();
         result.ComplianceDeclarations.Single().Organisation.ReferenceNumber.Should().Be(MatchingReferenceNumber);
@@ -736,7 +745,10 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     {
         await CreateMatchingAndNonMatchingDeclarations();
 
-        var result = await Search(new ComplianceDeclarationSearchQuery { Search = term });
+        var result = await Search(
+            new ComplianceDeclarationSearchQuery { Search = term },
+            TestContext.Current.CancellationToken
+        );
 
         result.ComplianceDeclarations.Should().BeEmpty();
         result.Total.Should().Be(0);
@@ -747,7 +759,10 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     {
         await CreateMatchingAndNonMatchingDeclarations();
 
-        var result = await Search(new ComplianceDeclarationSearchQuery { Search = "  zeina  " });
+        var result = await Search(
+            new ComplianceDeclarationSearchQuery { Search = "  zeina  " },
+            TestContext.Current.CancellationToken
+        );
 
         result.ComplianceDeclarations.Should().ContainSingle();
     }
@@ -760,7 +775,10 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
         await CreateDeclarationForOrganisation(organisation);
         await CreateDeclarationForOrganisation(organisation);
 
-        var result = await Search(new ComplianceDeclarationSearchQuery { Search = "repeat submitter" });
+        var result = await Search(
+            new ComplianceDeclarationSearchQuery { Search = "repeat submitter" },
+            TestContext.Current.CancellationToken
+        );
 
         result.ComplianceDeclarations.Should().HaveCount(2);
         result.Total.Should().Be(2);
@@ -773,7 +791,10 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             OrganisationFixture.Organisation().With(x => x.Name, "AxB Trading").Create()
         );
 
-        var result = await Search(new ComplianceDeclarationSearchQuery { Search = "A.B" });
+        var result = await Search(
+            new ComplianceDeclarationSearchQuery { Search = "A.B" },
+            TestContext.Current.CancellationToken
+        );
 
         result.ComplianceDeclarations.Should().BeEmpty();
     }
@@ -798,7 +819,8 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             {
                 Search = "combined filters",
                 Status = [ComplianceDeclarationStatus.Accepted],
-            }
+            },
+            TestContext.Current.CancellationToken
         );
 
         result.ComplianceDeclarations.Should().ContainSingle();
@@ -829,7 +851,8 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             {
                 Search = "dual type",
                 RegistrationType = [RegistrationType.ComplianceScheme],
-            }
+            },
+            TestContext.Current.CancellationToken
         );
 
         result.ComplianceDeclarations.Should().ContainSingle();
@@ -863,7 +886,8 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
         );
 
         var result = await Search(
-            new ComplianceDeclarationSearchQuery { Search = "two year", ObligationYear = matchingYear }
+            new ComplianceDeclarationSearchQuery { Search = "two year", ObligationYear = matchingYear },
+            TestContext.Current.CancellationToken
         );
 
         result.ComplianceDeclarations.Should().ContainSingle();
@@ -898,8 +922,91 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             TestContext.Current.CancellationToken
         );
 
-    private Task<ComplianceDeclarationPageResult> Search(ComplianceDeclarationSearchQuery query) =>
-        Subject.Search(query, 1, 10, TestContext.Current.CancellationToken);
+    private Task<ComplianceDeclarationPageResult> Search(
+        ComplianceDeclarationSearchQuery query,
+        CancellationToken cancellationToken
+    ) => Search(query, 1, 10, cancellationToken);
+
+    private Task<ComplianceDeclarationPageResult> Search(
+        ComplianceDeclarationSearchQuery query,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken
+    )
+    {
+        AllowUnindexedSearchQueries(query);
+
+        return Subject.Search(query, page, pageSize, cancellationToken);
+    }
+
+    private void AllowUnindexedSearchQueries(ComplianceDeclarationSearchQuery query)
+    {
+        if (query.ObligationYear.HasValue)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            AllowUnindexedSearchCount(
+                SearchFilterShape(query),
+                "Case-insensitive contains search over four alternative organisation fields has no viable B-tree index."
+            );
+
+            return;
+        }
+
+        if (query.Status is { Length: > 0 })
+        {
+            AllowUnindexedSearchCount(
+                "{status:{$in:[?]}}",
+                "Status-only filtering is low-selectivity; the existing search index deliberately begins with obligationYear."
+            );
+
+            return;
+        }
+
+        if (query.RegistrationType is { Length: > 0 })
+        {
+            AllowUnindexedSearchCount(
+                "{organisation.registrationType:{$in:[?]}}",
+                "Registration-type-only filtering is low-selectivity; the existing search index deliberately begins with obligationYear."
+            );
+
+            return;
+        }
+
+        AllowUnindexedSearchCount("{}", "An exact count with no filter must inspect every compliance declaration.");
+
+        if (query.Sort is { Length: > 0 })
+        {
+            AllowUnindexedMongoQuery(
+                new MongoQueryProfileAllowance(
+                    "query",
+                    ComplianceDeclarationNamespace,
+                    "{}",
+                    "MO-485",
+                    "Unbounded custom sorting would require an index for every sortable field and direction."
+                )
+            );
+        }
+    }
+
+    private static string SearchFilterShape(ComplianceDeclarationSearchQuery query)
+    {
+        var filters = new List<string> { OrganisationSearchFilter };
+
+        if (query.RegistrationType is { Length: > 0 })
+            filters.Add("organisation.registrationType:{$in:[?]}");
+
+        if (query.Status is { Length: > 0 })
+            filters.Add("status:{$in:[?]}");
+
+        return $"{{{string.Join(",", filters)}}}";
+    }
+
+    private void AllowUnindexedSearchCount(string filterShape, string reason) =>
+        AllowUnindexedMongoQuery(
+            new MongoQueryProfileAllowance("command", ComplianceDeclarationNamespace, filterShape, "MO-485", reason)
+        );
 
     [Fact]
     public async Task Search_WhenPaging_ShouldReturnCorrectPageAndTotal()
@@ -913,19 +1020,19 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             );
         }
 
-        var page1 = await Subject.Search(
+        var page1 = await Search(
             new ComplianceDeclarationSearchQuery(),
             1,
             pageSize,
             TestContext.Current.CancellationToken
         );
-        var page2 = await Subject.Search(
+        var page2 = await Search(
             new ComplianceDeclarationSearchQuery(),
             2,
             pageSize,
             TestContext.Current.CancellationToken
         );
-        var page3 = await Subject.Search(
+        var page3 = await Search(
             new ComplianceDeclarationSearchQuery(),
             3,
             pageSize,
@@ -947,7 +1054,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
     {
         await Subject.Create(ComplianceDeclarationFixture.Default().Create(), TestContext.Current.CancellationToken);
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery(),
             10,
             10,
@@ -980,7 +1087,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
         var targetRecord = records.First(x => x.Id == sortedIds[1]);
 
         // Verify initial position (Page 2)
-        var search1 = await Subject.Search(
+        var search1 = await Search(
             new ComplianceDeclarationSearchQuery(),
             2,
             pageSize,
@@ -999,7 +1106,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
         );
 
         // Verify position is retained (still Page 2)
-        var search2 = await Subject.Search(
+        var search2 = await Search(
             new ComplianceDeclarationSearchQuery(),
             2,
             pageSize,
@@ -1024,7 +1131,10 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             OrganisationFixture.Organisation().With(x => x.Name, otherName).Create()
         );
 
-        var result = await Search(new ComplianceDeclarationSearchQuery { Search = regexName });
+        var result = await Search(
+            new ComplianceDeclarationSearchQuery { Search = regexName },
+            TestContext.Current.CancellationToken
+        );
 
         result.ComplianceDeclarations.Should().ContainSingle();
         result.ComplianceDeclarations.Should().Contain(x => x.Organisation.Name == regexName);
@@ -1093,7 +1203,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             cancellationToken: TestContext.Current.CancellationToken
         );
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery
             {
                 Sort =
@@ -1148,7 +1258,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             cancellationToken: TestContext.Current.CancellationToken
         );
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery
             {
                 Sort =
@@ -1230,7 +1340,7 @@ public class ComplianceDeclarationServiceTests : IntegrationTestBase
             cancellationToken: TestContext.Current.CancellationToken
         );
 
-        var result = await Subject.Search(
+        var result = await Search(
             new ComplianceDeclarationSearchQuery
             {
                 Sort = [new ComplianceDeclarationSort { Field = field, Direction = direction }],

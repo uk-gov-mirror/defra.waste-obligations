@@ -112,7 +112,7 @@ public class RefreshOrganisationEligibilityFromDownstreamServicesTests : Integra
     private static OrganisationEligibilityRefreshService CreateSubject(IServiceProvider serviceProvider)
     {
         var dbContext = new MongoDbContext(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             Options.Create(new MongoDbOptions()),
             NullLogger<MongoDbContext>.Instance
         );

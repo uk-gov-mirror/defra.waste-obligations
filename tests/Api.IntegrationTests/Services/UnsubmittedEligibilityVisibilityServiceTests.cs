@@ -66,11 +66,11 @@ public class UnsubmittedEligibilityVisibilityServiceTests : IntegrationTestBase
             cancellationToken: TestContext.Current.CancellationToken
         );
         var subject = CreateSubject();
-        using var session = await GetMongoDatabase()
+        using var session = await GetMongoApplicationDatabase()
             .Client.StartSessionAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         await using var profiler = await MongoQueryProfiler.Start(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             [MongoQueryProfiler.IntegrationTestApplicationName],
             TestContext.Current.CancellationToken
         );
@@ -89,7 +89,7 @@ public class UnsubmittedEligibilityVisibilityServiceTests : IntegrationTestBase
     private static UnsubmittedEligibilityVisibilityService CreateSubject()
     {
         var dbContext = new MongoDbContext(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             Options.Create(new MongoDbOptions()),
             NullLogger<MongoDbContext>.Instance
         );

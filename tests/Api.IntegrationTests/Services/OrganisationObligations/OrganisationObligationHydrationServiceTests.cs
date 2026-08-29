@@ -448,7 +448,7 @@ public class OrganisationObligationHydrationServiceTests : IntegrationTestBase
         OrganisationObligationHydrationOptions? hydrationOptions = null
     )
     {
-        var database = GetMongoDatabase();
+        var database = GetMongoApplicationDatabase();
         var dbContext = new MongoDbContext(
             database,
             Options.Create(new MongoDbOptions()),

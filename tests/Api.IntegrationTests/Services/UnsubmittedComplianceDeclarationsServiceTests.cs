@@ -580,7 +580,7 @@ public class UnsubmittedOrganisationsServiceTests : IntegrationTestBase
     private UnsubmittedOrganisationsService CreateSubject(ILogger<UnsubmittedOrganisationsService>? logger = null) =>
         new(
             new MongoDbContext(
-                GetMongoDatabase(),
+                GetMongoApplicationDatabase(),
                 Options.Create(new MongoDbOptions()),
                 NullLogger<MongoDbContext>.Instance
             ),

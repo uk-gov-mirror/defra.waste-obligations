@@ -23,7 +23,7 @@ public class SearchComplianceDeclarationTests : IntegrationTestBase
 
     public SearchComplianceDeclarationTests()
     {
-        var database = GetMongoDatabase();
+        var database = GetMongoApplicationDatabase();
         var auditEventDbContext = new AuditEventDbContext(database);
         var dbContext = new MongoDbContext(
             database,

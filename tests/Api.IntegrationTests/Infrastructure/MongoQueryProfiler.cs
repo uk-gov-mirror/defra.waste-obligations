@@ -6,7 +6,8 @@ namespace Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 public sealed class MongoQueryProfiler : IAsyncDisposable
 {
     public const string ApiApplicationName = "waste-obligations-api";
-    public const string IntegrationTestApplicationName = "waste-obligations-integration-tests";
+    public const string IntegrationTestApplicationName = "waste-obligations-integration-application";
+    public const string IntegrationTestFixtureApplicationName = "waste-obligations-integration-fixtures";
 
     private const string ProfileCollectionName = "system.profile";
 
@@ -40,7 +41,7 @@ public sealed class MongoQueryProfiler : IAsyncDisposable
 
         var indexUsageAtStart = await ReadIndexUsage(database, cancellationToken);
         await database.RunCommandAsync<BsonDocument>(
-            new BsonDocument("profile", 2),
+            new BsonDocument { { "profile", 1 }, { "filter", ApplicationFilter(applicationNames) } },
             cancellationToken: cancellationToken
         );
 
@@ -53,7 +54,7 @@ public sealed class MongoQueryProfiler : IAsyncDisposable
             throw new InvalidOperationException("The MongoDB query profiler has already stopped.");
 
         await _database.RunCommandAsync<BsonDocument>(
-            new BsonDocument("profile", 0),
+            new BsonDocument { { "profile", 0 }, { "filter", "unset" } },
             cancellationToken: cancellationToken
         );
         _stopped = true;
@@ -69,7 +70,7 @@ public sealed class MongoQueryProfiler : IAsyncDisposable
         if (_stopped)
             return;
 
-        await _database.RunCommandAsync<BsonDocument>(new BsonDocument("profile", 0));
+        await _database.RunCommandAsync<BsonDocument>(new BsonDocument { { "profile", 0 }, { "filter", "unset" } });
         _stopped = true;
     }
 
@@ -81,17 +82,18 @@ public sealed class MongoQueryProfiler : IAsyncDisposable
 
     private async Task<IReadOnlyCollection<MongoQueryProfile>> ReadQueries(CancellationToken cancellationToken)
     {
-        var applicationFilter =
-            _applicationNames.Count == 1
-                ? new BsonDocument("appName", _applicationNames.Single())
-                : new BsonDocument("appName", new BsonDocument("$in", new BsonArray(_applicationNames)));
         var entries = await _database
             .GetCollection<BsonDocument>(ProfileCollectionName)
-            .Find(applicationFilter)
+            .Find(ApplicationFilter(_applicationNames))
             .ToListAsync(cancellationToken);
 
         return entries.Where(x => x.Contains("planSummary")).Select(ToQueryProfile).ToArray();
     }
+
+    private static BsonDocument ApplicationFilter(IReadOnlyCollection<string> applicationNames) =>
+        applicationNames.Count == 1
+            ? new BsonDocument("appName", applicationNames.Single())
+            : new BsonDocument("appName", new BsonDocument("$in", new BsonArray(applicationNames)));
 
     private static MongoQueryProfile ToQueryProfile(BsonDocument entry)
     {

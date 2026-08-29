@@ -147,7 +147,7 @@ public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
         var subject = CreateSubject();
 
         await using var profiler = await MongoQueryProfiler.Start(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             [MongoQueryProfiler.IntegrationTestApplicationName],
             TestContext.Current.CancellationToken
         );
@@ -693,7 +693,7 @@ public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
 
     private OrganisationEligibilityRefreshService CreateSubject() =>
         CreateSubject(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             OrganisationEligibilitySource,
             OrganisationReferenceSearchService,
             _timeProvider
@@ -833,6 +833,7 @@ public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
         settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
         settings.ConnectTimeout = TimeSpan.FromSeconds(5);
         settings.SocketTimeout = TimeSpan.FromSeconds(5);
+        settings.ApplicationName = MongoQueryProfiler.IntegrationTestApplicationName;
         settings.ClusterConfigurator = builder => builder.Subscribe(commandStarted);
 
         return new MongoClient(settings).GetDatabase("waste-obligations");

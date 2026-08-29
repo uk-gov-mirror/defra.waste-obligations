@@ -98,7 +98,7 @@ public class OrganisationEligibilityRefreshLeaseServiceTests : IntegrationTestBa
 
     private static OrganisationEligibilityRefreshLeaseService CreateSubject(TimeProvider timeProvider) =>
         new(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             timeProvider,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OrganisationEligibilityRefreshLeaseService>.Instance
         );

@@ -88,6 +88,7 @@ Follow this order for a persisted entity shape change:
 ## Integration tests
 - Keep integration tests focused on integration boundaries. Use them to prove real components are wired together and observable side effects happen; put detailed formatting, serialisation, and field-by-field assertions in fast unit tests where possible.
 - Every new MongoDB query shape must have integration-test evidence that its executed plan uses an index. A collection scan or other unindexed plan is permitted only with an explicit, narrowly matched and documented accepted exception that states the reason and review ticket; do not add broad collection-level allowances.
+- Direct MongoDB service tests must derive from `IntegrationTestBase` and construct their real contexts with `GetMongoApplicationDatabase()` so the automatic profiler observes them. Keep test setup and assertions on `GetMongoDatabase()`; Docker Compose API scenarios are intentionally excluded from this profiling scope.
 - Do not change shared infrastructure settings, such as queue attributes or database-level configuration, from integration tests unless the test owns an isolated resource created specifically for that test.
 - Run the local environment with `docker compose up --build -d --wait`
 - Run Api.IntegrationTests with `DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=1 dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-restore -p:OpenApiGenerateDocuments=false -m:1 -nodeReuse:false --disable-build-servers -v:minimal`

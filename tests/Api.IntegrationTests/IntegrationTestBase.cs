@@ -31,6 +31,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     private const string JsonContentType = "application/json";
     private const string ServiceUrl = "http://localhost:4566";
 
+    private readonly List<MongoQueryProfileAllowance> _mongoQueryAllowances = [];
+    private MongoQueryProfiler? _mongoQueryProfiler;
+
     public required WireMockContext WireMockContext;
 
     public required IMongoCollection<ComplianceDeclaration> ComplianceDeclarations { get; set; }
@@ -45,10 +48,15 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     [ModuleInitializer]
     public static void RegisterMongoConventions() => ServiceCollectionExtensions.RegisterConventions();
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        if (_mongoQueryProfiler is not null)
+        {
+            var profile = await _mongoQueryProfiler.Stop(TestContext.Current.CancellationToken);
+            profile.AssertIndexesUsed(_mongoQueryAllowances);
+        }
+
         GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
     }
 
     public async ValueTask InitializeAsync()
@@ -80,6 +88,18 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         using var sqsClient = CreateSqsClient();
         await DrainAnalyticsEventsQueue(sqsClient);
+
+        _mongoQueryProfiler = await MongoQueryProfiler.Start(
+            GetMongoDatabase(),
+            [MongoQueryProfiler.IntegrationTestApplicationName],
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    protected void AllowUnindexedMongoQuery(MongoQueryProfileAllowance allowance)
+    {
+        if (!_mongoQueryAllowances.Contains(allowance))
+            _mongoQueryAllowances.Add(allowance);
     }
 
     protected static HttpClient CreateClient()
@@ -255,7 +275,13 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return Jwt.GenerateJwt(claims);
     }
 
-    protected static IMongoDatabase GetMongoDatabase()
+    protected static IMongoDatabase GetMongoDatabase() =>
+        GetMongoDatabase(MongoQueryProfiler.IntegrationTestFixtureApplicationName);
+
+    protected static IMongoDatabase GetMongoApplicationDatabase() =>
+        GetMongoDatabase(MongoQueryProfiler.IntegrationTestApplicationName);
+
+    private static IMongoDatabase GetMongoDatabase(string applicationName)
     {
         var settings = MongoClientSettings.FromConnectionString(
             "mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true&readPreference=secondaryPreferred"
@@ -263,7 +289,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
         settings.ConnectTimeout = TimeSpan.FromSeconds(5);
         settings.SocketTimeout = TimeSpan.FromSeconds(5);
-        settings.ApplicationName = MongoQueryProfiler.IntegrationTestApplicationName;
+        settings.ApplicationName = applicationName;
 
         return new MongoClient(settings).GetDatabase("waste-obligations");
     }

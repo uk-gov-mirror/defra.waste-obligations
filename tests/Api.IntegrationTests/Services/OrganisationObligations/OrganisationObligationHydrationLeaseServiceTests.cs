@@ -98,7 +98,7 @@ public class OrganisationObligationHydrationLeaseServiceTests : IntegrationTestB
 
     private static OrganisationObligationHydrationLeaseService CreateSubject(TimeProvider timeProvider) =>
         new(
-            GetMongoDatabase(),
+            GetMongoApplicationDatabase(),
             timeProvider,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OrganisationObligationHydrationLeaseService>.Instance
         );

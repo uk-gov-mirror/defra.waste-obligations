@@ -1,6 +1,7 @@
 using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteObligations.Api.Data;
+using Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 using Defra.WasteObligations.Api.Services;
 using Defra.WasteObligations.Api.Utils.Logging;
 using Defra.WasteObligations.Api.Utils.Metrics;
@@ -20,9 +21,17 @@ namespace Defra.WasteObligations.Api.IntegrationTests.Services;
 public class ComplianceDeclarationTransactionTimeoutTests : IAsyncLifetime
 {
     private const string DatabaseName = "waste-obligations-transaction-timeout-tests";
+    private static readonly MongoQueryProfileAllowance UnmigratedDatabaseQueryAllowance = new(
+        "query",
+        $"{DatabaseName}.ComplianceDeclaration",
+        "{$and:[{$or:[{status:?}]},{obligationYear:?},{organisation._id:?},{organisation.registrationType:?}]}",
+        "MO-485",
+        "This transaction-timeout test deliberately uses an unmigrated isolated database."
+    );
 
     private readonly MongoClient _mongoClient;
     private readonly IMongoDatabase _database;
+    private MongoQueryProfiler? _mongoQueryProfiler;
 
     public ComplianceDeclarationTransactionTimeoutTests()
     {
@@ -32,6 +41,7 @@ public class ComplianceDeclarationTransactionTimeoutTests : IAsyncLifetime
         settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
         settings.ConnectTimeout = TimeSpan.FromSeconds(5);
         settings.SocketTimeout = TimeSpan.FromSeconds(5);
+        settings.ApplicationName = MongoQueryProfiler.IntegrationTestApplicationName;
 
         _mongoClient = new MongoClient(settings);
         _database = _mongoClient.GetDatabase(DatabaseName);
@@ -81,11 +91,24 @@ public class ComplianceDeclarationTransactionTimeoutTests : IAsyncLifetime
         complianceDeclarationMetrics.DidNotReceive().Created();
     }
 
-    public async ValueTask InitializeAsync() =>
+    public async ValueTask InitializeAsync()
+    {
         await _mongoClient.DropDatabaseAsync(DatabaseName, TestContext.Current.CancellationToken);
+        _mongoQueryProfiler = await MongoQueryProfiler.Start(
+            _database,
+            [MongoQueryProfiler.IntegrationTestApplicationName],
+            TestContext.Current.CancellationToken
+        );
+    }
 
     public async ValueTask DisposeAsync()
     {
+        if (_mongoQueryProfiler is not null)
+        {
+            var profile = await _mongoQueryProfiler.Stop(CancellationToken.None);
+            profile.AssertIndexesUsed([UnmigratedDatabaseQueryAllowance]);
+        }
+
         await _mongoClient.DropDatabaseAsync(DatabaseName, CancellationToken.None);
         GC.SuppressFinalize(this);
     }
