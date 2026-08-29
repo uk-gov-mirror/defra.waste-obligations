@@ -1,0 +1,53 @@
+using AdaskoTheBeAsT.MongoDbMigrations.Abstractions;
+using Defra.WasteObligations.Api.Data.Entities;
+using MongoDB.Driver;
+using MigrationVersion = AdaskoTheBeAsT.MongoDbMigrations.Abstractions.Version;
+
+namespace Defra.WasteObligations.Api.Data.Migrations;
+
+[MigrationCollection(nameof(OrganisationComplianceDeclarationEligibility), MigrationDirection.Both)]
+public class OrganisationEligibilityApplicationQueryIndexes : MongoMigration
+{
+    private const string OrganisationKeyIndexName = "OrganisationId_ObligationYear_RegistrationType";
+    private const string HydrationEligibilityIndexName =
+        "Generation_ObligationYear_RegistrationStatus_ReferenceNumberResolutionState_OrganisationId";
+    private const string ExpiredGenerationIndexName = "RefreshedAt";
+
+    public override MigrationVersion Version => new(1, 0, 9);
+
+    public override string Name => "010 - Organisation eligibility application query indexes";
+
+    public override async Task UpAsync(MigrationContext context)
+    {
+        await CreateIndex(
+            context,
+            OrganisationKeyIndexName,
+            Builders<OrganisationComplianceDeclarationEligibility>
+                .IndexKeys.Ascending(x => x.OrganisationId)
+                .Ascending(x => x.ObligationYear)
+                .Ascending(x => x.RegistrationType)
+        );
+        await CreateIndex(
+            context,
+            HydrationEligibilityIndexName,
+            Builders<OrganisationComplianceDeclarationEligibility>
+                .IndexKeys.Ascending(x => x.Generation)
+                .Ascending(x => x.ObligationYear)
+                .Ascending(x => x.RegistrationStatus)
+                .Ascending(x => x.ReferenceNumberResolutionState)
+                .Ascending(x => x.OrganisationId)
+        );
+        await CreateIndex(
+            context,
+            ExpiredGenerationIndexName,
+            Builders<OrganisationComplianceDeclarationEligibility>.IndexKeys.Ascending(x => x.RefreshedAt)
+        );
+    }
+
+    public override async Task DownAsync(MigrationContext context)
+    {
+        await DropIndex<OrganisationComplianceDeclarationEligibility>(context, OrganisationKeyIndexName);
+        await DropIndex<OrganisationComplianceDeclarationEligibility>(context, HydrationEligibilityIndexName);
+        await DropIndex<OrganisationComplianceDeclarationEligibility>(context, ExpiredGenerationIndexName);
+    }
+}

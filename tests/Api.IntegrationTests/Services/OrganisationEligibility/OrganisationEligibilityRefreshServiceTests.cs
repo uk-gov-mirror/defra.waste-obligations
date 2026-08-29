@@ -2,6 +2,7 @@ using System.Text.Json;
 using AwesomeAssertions;
 using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
+using Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 using Defra.WasteObligations.Api.Services;
 using Defra.WasteObligations.Api.Services.AccountBackend;
 using Defra.WasteObligations.Api.Services.OrganisationEligibility;
@@ -25,6 +26,7 @@ namespace Defra.WasteObligations.Api.IntegrationTests.Services.OrganisationEligi
 
 public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
 {
+    private const string ExpiredGenerationIndexName = "RefreshedAt";
     private readonly FakeTimeProvider _timeProvider = new(new DateTimeOffset(2026, 8, 26, 12, 0, 0, TimeSpan.Zero));
     private IOrganisationReferenceSearchService OrganisationReferenceSearchService { get; } =
         Substitute.For<IOrganisationReferenceSearchService>();
@@ -124,6 +126,41 @@ public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
             .SingleAsync(TestContext.Current.CancellationToken);
         row.RecyclingObligationsMet.Should().BeFalse();
         row.ObligationCoveragePercentage.Should().Be(80);
+    }
+
+    [Fact]
+    public async Task Refresh_WhenCollectingExpiredGenerations_ShouldUseTheRefreshedAtIndex()
+    {
+        var organisationId = Guid.NewGuid();
+        ArrangeSource(organisationId);
+        ArrangeDirectProducerReference(organisationId, "051829");
+        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        await OrganisationComplianceDeclarationEligibilities.InsertManyAsync(
+            [
+                CreateEligibility("expired", Guid.NewGuid(), utcNow.AddDays(-31)),
+                .. Enumerable
+                    .Range(0, 100)
+                    .Select(_ => CreateEligibility("retained", Guid.NewGuid(), utcNow.AddDays(-1))),
+            ],
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        var subject = CreateSubject();
+
+        await using var profiler = await MongoQueryProfiler.Start(
+            GetMongoDatabase(),
+            [MongoQueryProfiler.IntegrationTestApplicationName],
+            TestContext.Current.CancellationToken
+        );
+        await subject.Refresh(TestContext.Current.CancellationToken);
+        var profile = await profiler.Stop(TestContext.Current.CancellationToken);
+
+        profile.QueriesWithoutAnIndex.Should().BeEmpty();
+        profile
+            .Queries.Should()
+            .Contain(x =>
+                x.Namespace == "waste-obligations.OrganisationComplianceDeclarationEligibility"
+                && x.IndexNames.Contains(ExpiredGenerationIndexName)
+            );
     }
 
     [Fact]
@@ -767,6 +804,25 @@ public class OrganisationEligibilityRefreshServiceTests : IntegrationTestBase
             ActiveRowCount = 1,
             ActiveGenerationPromotedAt = _timeProvider.GetUtcNow().UtcDateTime,
             LastVerifiedAt = lastVerifiedAt ?? _timeProvider.GetUtcNow().UtcDateTime,
+        };
+
+    private static OrganisationComplianceDeclarationEligibilityEntity CreateEligibility(
+        string generation,
+        Guid organisationId,
+        DateTime refreshedAt
+    ) =>
+        new()
+        {
+            Generation = generation,
+            OrganisationId = organisationId,
+            ObligationYear = 2026,
+            RegistrationType = Defra.WasteObligations.Api.Data.Entities.RegistrationType.DirectProducer,
+            RegistrationStatus = OrganisationRegistrationStatus.Registered,
+            Name = "Organisation",
+            ReferenceNumber = "reference",
+            ReferenceNumberResolutionState = OrganisationReferenceNumberResolutionState.Resolved,
+            SourceFingerprint = "fingerprint",
+            RefreshedAt = refreshedAt,
         };
 
     private static IMongoDatabase CreateMonitoredDatabase(Action<CommandStartedEvent> commandStarted)

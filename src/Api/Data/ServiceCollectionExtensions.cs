@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
 
             var options = sp.GetRequiredService<IOptions<MongoDbOptions>>();
             var settings = MongoClientSettings.FromConnectionString(options.Value.DatabaseUri);
+            settings.ApplicationName = "waste-obligations-api";
             var client = new MongoClient(settings);
 
             RegisterConventions();

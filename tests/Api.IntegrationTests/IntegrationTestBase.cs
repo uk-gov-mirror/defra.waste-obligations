@@ -8,6 +8,7 @@ using Amazon.SQS.Model;
 using AwesomeAssertions;
 using Defra.WasteObligations.Api.Authentication;
 using Defra.WasteObligations.Api.Data.Entities;
+using Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 using Defra.WasteObligations.AuditEvents.Data;
 using Defra.WasteObligations.AuditEvents.Entities;
 using Defra.WasteObligations.Testing;
@@ -262,6 +263,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
         settings.ConnectTimeout = TimeSpan.FromSeconds(5);
         settings.SocketTimeout = TimeSpan.FromSeconds(5);
+        settings.ApplicationName = MongoQueryProfiler.IntegrationTestApplicationName;
 
         return new MongoClient(settings).GetDatabase("waste-obligations");
     }

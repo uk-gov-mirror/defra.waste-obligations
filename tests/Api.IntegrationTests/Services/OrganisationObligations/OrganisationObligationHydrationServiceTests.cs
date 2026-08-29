@@ -2,6 +2,7 @@ using AutoFixture;
 using AwesomeAssertions;
 using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
+using Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 using Defra.WasteObligations.Api.Services.OrganisationObligations;
 using Defra.WasteObligations.Api.Services.PrnCommonBackend;
 using Defra.WasteObligations.Api.Utils.Metrics;
@@ -20,6 +21,8 @@ public class OrganisationObligationHydrationServiceTests : IntegrationTestBase
 {
     private const int ObligationYear = 2026;
     private const string HydrationDueWorkIndexName = "ObligationYear_IsHydrationActive_Priority_NextRefreshAt";
+    private const string HydrationEligibilityIndexName =
+        "Generation_ObligationYear_RegistrationStatus_ReferenceNumberResolutionState_OrganisationId";
     private readonly FakeTimeProvider _timeProvider = new(new DateTimeOffset(2026, 8, 26, 12, 0, 0, TimeSpan.Zero));
     private IOrganisationObligationSource ObligationSource { get; } = Substitute.For<IOrganisationObligationSource>();
     private IOrganisationObligationHydrationMetrics HydrationMetrics { get; } =
@@ -67,6 +70,40 @@ public class OrganisationObligationHydrationServiceTests : IntegrationTestBase
         summary.NextRefreshAt.Should().Be(_timeProvider.GetUtcNow().UtcDateTime);
         summary.RefreshState.Should().Be(OrganisationObligationRefreshState.Pending);
         summary.IsHydrationActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task EnqueueNewEligible_WhenProfiled_ShouldUseTheHydrationEligibilityIndex()
+    {
+        var organisationId = Guid.NewGuid();
+        await InsertActiveSnapshot();
+        await InsertEligibility(organisationId, RegistrationType.DirectProducer);
+        foreach (var _ in Enumerable.Range(0, 100))
+        {
+            await InsertEligibility(
+                Guid.NewGuid(),
+                RegistrationType.DirectProducer,
+                obligationYear: ObligationYear - 1
+            );
+        }
+
+        var subject = CreateSubject();
+        await using var profiler = await MongoQueryProfiler.Start(
+            GetMongoDatabase(),
+            [MongoQueryProfiler.IntegrationTestApplicationName],
+            TestContext.Current.CancellationToken
+        );
+        var enqueuedCount = await subject.EnqueueNewEligible(ObligationYear, TestContext.Current.CancellationToken);
+        var profile = await profiler.Stop(TestContext.Current.CancellationToken);
+
+        enqueuedCount.Should().Be(1);
+        profile.QueriesWithoutAnIndex.Should().BeEmpty();
+        profile
+            .Queries.Should()
+            .Contain(x =>
+                x.Namespace == "waste-obligations.OrganisationComplianceDeclarationEligibility"
+                && x.IndexNames.Contains(HydrationEligibilityIndexName)
+            );
     }
 
     [Fact]

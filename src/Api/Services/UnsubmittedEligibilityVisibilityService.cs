@@ -12,7 +12,7 @@ public class UnsubmittedEligibilityVisibilityService(IDbContext dbContext) : IUn
         CancellationToken cancellationToken
     )
     {
-        var excludedKeys = await ReadExcludedKeys(cancellationToken);
+        var excludedKeys = await ReadExcludedKeys(rows, cancellationToken);
 
         return rows.Select(row =>
                 row with
@@ -121,13 +121,27 @@ public class UnsubmittedEligibilityVisibilityService(IDbContext dbContext) : IUn
         );
     }
 
-    private async Task<HashSet<UnsubmittedEligibilityKey>> ReadExcludedKeys(CancellationToken cancellationToken)
+    private async Task<HashSet<UnsubmittedEligibilityKey>> ReadExcludedKeys(
+        IReadOnlyList<OrganisationComplianceDeclarationEligibility> rows,
+        CancellationToken cancellationToken
+    )
     {
+        if (rows.Count == 0)
+            return [];
+
+        var organisationIds = rows.Select(x => x.OrganisationId).Distinct().ToArray();
+        var obligationYears = rows.Select(x => x.ObligationYear).Distinct().ToArray();
+        var registrationTypes = rows.Select(x => x.RegistrationType).Distinct().ToArray();
         var declarations = await dbContext
             .ComplianceDeclarations.Find(
-                Builders<ComplianceDeclaration>.Filter.In(
-                    x => x.Status,
-                    [ComplianceDeclarationStatus.Submitted, ComplianceDeclarationStatus.Accepted]
+                Builders<ComplianceDeclaration>.Filter.And(
+                    Builders<ComplianceDeclaration>.Filter.In(x => x.Organisation.Id, organisationIds),
+                    Builders<ComplianceDeclaration>.Filter.In(x => x.ObligationYear, obligationYears),
+                    Builders<ComplianceDeclaration>.Filter.In(x => x.Organisation.RegistrationType, registrationTypes),
+                    Builders<ComplianceDeclaration>.Filter.In(
+                        x => x.Status,
+                        [ComplianceDeclarationStatus.Submitted, ComplianceDeclarationStatus.Accepted]
+                    )
                 )
             )
             .ToListAsync(cancellationToken);

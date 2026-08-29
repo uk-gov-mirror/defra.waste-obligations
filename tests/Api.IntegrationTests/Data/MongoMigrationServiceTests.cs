@@ -42,6 +42,11 @@ public class MongoMigrationServiceTests : IntegrationTestBase
         "Generation_IsVisibleInUnsubmittedView_RecyclingObligationsMet_Name_OrganisationId";
     private const string OrganisationEligibilityReferenceNumberIndexName =
         "Generation_IsVisibleInUnsubmittedView_ReferenceNumber_Name_OrganisationId";
+    private const string OrganisationEligibilityOrganisationKeyIndexName =
+        "OrganisationId_ObligationYear_RegistrationType";
+    private const string OrganisationEligibilityHydrationIndexName =
+        "Generation_ObligationYear_RegistrationStatus_ReferenceNumberResolutionState_OrganisationId";
+    private const string OrganisationEligibilityExpiredGenerationIndexName = "RefreshedAt";
     private const string OrganisationObligationSummaryOrganisationYearIndexName = "OrganisationId_ObligationYear";
     private const string OrganisationObligationSummaryHydrationDueWorkIndexName =
         "ObligationYear_IsHydrationActive_Priority_NextRefreshAt";
@@ -183,6 +188,64 @@ public class MongoMigrationServiceTests : IntegrationTestBase
         indexes.Should().NotContain(x => x.GetValue("name") == OrganisationEligibilityReferenceNumberIndexName);
         indexes.Should().NotContain(x => x.GetValue("name") == OrganisationEligibilityRecyclingObligationsIndexName);
         indexes.Should().NotContain(x => x.GetValue("name") == OrganisationEligibilityPercentageMetIndexName);
+
+        await subject.UpAsync(context);
+    }
+
+    [Fact]
+    public async Task OrganisationEligibilityApplicationQueryIndexes_ShouldCreateAndDropIndexes()
+    {
+        var database = GetMongoDatabase();
+        var context = new MigrationContext(database, null!, TestContext.Current.CancellationToken);
+        var subject = new OrganisationEligibilityApplicationQueryIndexes();
+        await subject.DownAsync(context);
+
+        await subject.UpAsync(context);
+
+        var indexes = await (
+            await OrganisationComplianceDeclarationEligibilities.Indexes.ListAsync(
+                TestContext.Current.CancellationToken
+            )
+        ).ToListAsync(TestContext.Current.CancellationToken);
+        indexes
+            .Should()
+            .Contain(x =>
+                IsIndex(
+                    x,
+                    OrganisationEligibilityOrganisationKeyIndexName,
+                    OrganisationEligibilityOrganisationKeyIndexKeys(OrganisationComplianceDeclarationEligibilities)
+                )
+            );
+        indexes
+            .Should()
+            .Contain(x =>
+                IsIndex(
+                    x,
+                    OrganisationEligibilityHydrationIndexName,
+                    OrganisationEligibilityHydrationIndexKeys(OrganisationComplianceDeclarationEligibilities)
+                )
+            );
+        indexes
+            .Should()
+            .Contain(x =>
+                IsIndex(
+                    x,
+                    OrganisationEligibilityExpiredGenerationIndexName,
+                    OrganisationEligibilityExpiredGenerationIndexKeys(OrganisationComplianceDeclarationEligibilities)
+                )
+            );
+
+        await subject.DownAsync(context);
+        await subject.DownAsync(context);
+        indexes = await (
+            await OrganisationComplianceDeclarationEligibilities.Indexes.ListAsync(
+                TestContext.Current.CancellationToken
+            )
+        ).ToListAsync(TestContext.Current.CancellationToken);
+
+        indexes.Should().NotContain(x => x.GetValue("name") == OrganisationEligibilityOrganisationKeyIndexName);
+        indexes.Should().NotContain(x => x.GetValue("name") == OrganisationEligibilityHydrationIndexName);
+        indexes.Should().NotContain(x => x.GetValue("name") == OrganisationEligibilityExpiredGenerationIndexName);
 
         await subject.UpAsync(context);
     }
@@ -1026,6 +1089,38 @@ public class MongoMigrationServiceTests : IntegrationTestBase
                 .Ascending(x => x.ObligationCoveragePercentage)
                 .Ascending(x => x.Name)
                 .Ascending(x => x.OrganisationId)
+        );
+
+    private static BsonDocument OrganisationEligibilityOrganisationKeyIndexKeys(
+        IMongoCollection<OrganisationComplianceDeclarationEligibility> collection
+    ) =>
+        RenderIndexKeys(
+            collection,
+            Builders<OrganisationComplianceDeclarationEligibility>
+                .IndexKeys.Ascending(x => x.OrganisationId)
+                .Ascending(x => x.ObligationYear)
+                .Ascending(x => x.RegistrationType)
+        );
+
+    private static BsonDocument OrganisationEligibilityHydrationIndexKeys(
+        IMongoCollection<OrganisationComplianceDeclarationEligibility> collection
+    ) =>
+        RenderIndexKeys(
+            collection,
+            Builders<OrganisationComplianceDeclarationEligibility>
+                .IndexKeys.Ascending(x => x.Generation)
+                .Ascending(x => x.ObligationYear)
+                .Ascending(x => x.RegistrationStatus)
+                .Ascending(x => x.ReferenceNumberResolutionState)
+                .Ascending(x => x.OrganisationId)
+        );
+
+    private static BsonDocument OrganisationEligibilityExpiredGenerationIndexKeys(
+        IMongoCollection<OrganisationComplianceDeclarationEligibility> collection
+    ) =>
+        RenderIndexKeys(
+            collection,
+            Builders<OrganisationComplianceDeclarationEligibility>.IndexKeys.Ascending(x => x.RefreshedAt)
         );
 
     private static BsonDocument OrganisationObligationSummaryOrganisationYearIndexKeys(

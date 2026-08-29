@@ -1,5 +1,6 @@
 using AutoFixture;
 using AwesomeAssertions;
+using Defra.WasteObligations.Api.IntegrationTests.Infrastructure;
 using Defra.WasteObligations.AuditEvents;
 using Defra.WasteObligations.AuditEvents.Data;
 using Defra.WasteObligations.AuditEvents.Entities;
@@ -129,6 +130,30 @@ public class AuditEventDispatchServiceTests : IntegrationTestBase
                 }
             );
         auditEventMetrics.Received(1).DispatchDispatched(Analytics, auditEvent);
+    }
+
+    [Fact]
+    public async Task MarkDispatched_WhenProfiled_ShouldUseTheIdIndex()
+    {
+        var auditEvent = CreateAuditEvent("event-1", 1);
+        await AuditEvents.InsertManyAsync(
+            [auditEvent, .. Enumerable.Range(2, 100).Select(x => CreateAuditEvent($"event-{x}", x))],
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        var subject = CreateSubject();
+
+        await using var profiler = await MongoQueryProfiler.Start(
+            GetMongoDatabase(),
+            [MongoQueryProfiler.IntegrationTestApplicationName],
+            TestContext.Current.CancellationToken
+        );
+        await subject.MarkDispatched(Analytics, auditEvent, TestContext.Current.CancellationToken);
+        var profile = await profiler.Stop(TestContext.Current.CancellationToken);
+
+        profile.QueriesWithoutAnIndex.Should().BeEmpty();
+        profile
+            .Queries.Should()
+            .Contain(x => x.Namespace == "waste-obligations.AuditEvent" && x.IndexNames.Contains("_id_"));
     }
 
     [Fact]
