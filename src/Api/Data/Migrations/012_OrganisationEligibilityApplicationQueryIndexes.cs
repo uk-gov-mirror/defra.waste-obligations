@@ -13,9 +13,9 @@ public class OrganisationEligibilityApplicationQueryIndexes : MongoMigration
         "Generation_ObligationYear_RegistrationStatus_ReferenceNumberResolutionState_OrganisationId";
     private const string ExpiredGenerationIndexName = "RefreshedAt";
 
-    public override MigrationVersion Version => new(1, 0, 9);
+    public override MigrationVersion Version => new(1, 0, 11);
 
-    public override string Name => "010 - Organisation eligibility application query indexes";
+    public override string Name => "012 - Organisation eligibility application query indexes";
 
     public override async Task UpAsync(MigrationContext context)
     {
