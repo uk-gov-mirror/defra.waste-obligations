@@ -244,14 +244,27 @@ public class OrganisationObligationHydrationService(
                     new ReplaceOptions { IsUpsert = true },
                     token
                 );
-                await dbContext.OrganisationComplianceDeclarationEligibilities.UpdateManyAsync(
-                    session,
-                    x => x.OrganisationId == summary.OrganisationId && x.ObligationYear == summary.ObligationYear,
-                    Builders<OrganisationComplianceDeclarationEligibility>
-                        .Update.Set(x => x.RecyclingObligationsMet, summary.RecyclingObligationsMet)
-                        .Set(x => x.ObligationCoveragePercentage, summary.ObligationCoveragePercentage ?? 0),
-                    cancellationToken: token
-                );
+                var activeGeneration = await dbContext
+                    .OrganisationEligibilitySnapshots.Find(
+                        session,
+                        x => x.Id == OrganisationEligibilitySnapshot.SnapshotId
+                    )
+                    .Project(x => x.ActiveGeneration)
+                    .SingleOrDefaultAsync(token);
+                if (activeGeneration is not null)
+                {
+                    await dbContext.OrganisationComplianceDeclarationEligibilities.UpdateManyAsync(
+                        session,
+                        x =>
+                            x.Generation == activeGeneration
+                            && x.OrganisationId == summary.OrganisationId
+                            && x.ObligationYear == summary.ObligationYear,
+                        Builders<OrganisationComplianceDeclarationEligibility>
+                            .Update.Set(x => x.RecyclingObligationsMet, summary.RecyclingObligationsMet)
+                            .Set(x => x.ObligationCoveragePercentage, summary.ObligationCoveragePercentage ?? 0),
+                        cancellationToken: token
+                    );
+                }
                 await OrganisationEligibilitySnapshotState.IncrementMaterialisedStateVersion(dbContext, session, token);
 
                 return true;

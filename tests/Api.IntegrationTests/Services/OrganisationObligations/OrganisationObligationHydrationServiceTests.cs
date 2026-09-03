@@ -171,6 +171,7 @@ public class OrganisationObligationHydrationServiceTests : IntegrationTestBase
         var organisationId = Guid.NewGuid();
         await InsertActiveSnapshot();
         await InsertEligibility(organisationId, RegistrationType.DirectProducer);
+        await InsertEligibility(organisationId, RegistrationType.DirectProducer, generation: "retained");
         ObligationSource
             .ReadObligations(organisationId, ObligationYear, Arg.Any<CancellationToken>())
             .Returns([
@@ -196,10 +197,19 @@ public class OrganisationObligationHydrationServiceTests : IntegrationTestBase
         summary.Priority.Should().Be(OrganisationObligationHydrationPriority.ScheduledRefresh);
         summary.IsHydrationActive.Should().BeTrue();
         var eligibility = await OrganisationComplianceDeclarationEligibilities
-            .Find(x => x.OrganisationId == organisationId && x.ObligationYear == ObligationYear)
+            .Find(x =>
+                x.Generation == "active" && x.OrganisationId == organisationId && x.ObligationYear == ObligationYear
+            )
             .SingleAsync(TestContext.Current.CancellationToken);
         eligibility.RecyclingObligationsMet.Should().BeFalse();
         eligibility.ObligationCoveragePercentage.Should().Be(88);
+        var retainedEligibility = await OrganisationComplianceDeclarationEligibilities
+            .Find(x =>
+                x.Generation == "retained" && x.OrganisationId == organisationId && x.ObligationYear == ObligationYear
+            )
+            .SingleAsync(TestContext.Current.CancellationToken);
+        retainedEligibility.RecyclingObligationsMet.Should().BeNull();
+        retainedEligibility.ObligationCoveragePercentage.Should().Be(0);
         var snapshot = await OrganisationEligibilitySnapshots
             .Find(x => x.Id == OrganisationEligibilitySnapshot.SnapshotId)
             .SingleAsync(TestContext.Current.CancellationToken);
