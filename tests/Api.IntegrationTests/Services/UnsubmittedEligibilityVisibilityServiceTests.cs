@@ -14,7 +14,8 @@ public class UnsubmittedEligibilityVisibilityServiceTests : IntegrationTestBase
 {
     private const int ObligationYear = 2026;
     private const string ComplianceDeclarationOrganisationIndexName = "OrganisationId_ObligationYear";
-    private const string EligibilityOrganisationKeyIndexName = "OrganisationId_ObligationYear_RegistrationType";
+    private const string EligibilityOrganisationKeyIndexName =
+        "Generation_OrganisationId_ObligationYear_RegistrationType";
 
     [Fact]
     public async Task Apply_WhenCheckingRelevantDeclarations_ShouldUseTheOrganisationIndex()
@@ -63,6 +64,14 @@ public class UnsubmittedEligibilityVisibilityServiceTests : IntegrationTestBase
                 Eligibility(declaration.Organisation.Id),
                 .. Enumerable.Range(0, 100).Select(_ => Eligibility(Guid.NewGuid())),
             ],
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        await OrganisationEligibilitySnapshots.InsertOneAsync(
+            new OrganisationEligibilitySnapshot
+            {
+                Id = OrganisationEligibilitySnapshot.SnapshotId,
+                ActiveGeneration = "generation",
+            },
             cancellationToken: TestContext.Current.CancellationToken
         );
         var subject = CreateSubject();
