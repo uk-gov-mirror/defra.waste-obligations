@@ -112,7 +112,7 @@ public class PrnCommonBackendServiceTests : WireMockTestBase
             .LogEntries.Single(x => x.RequestMessage?.Path == $"/api/v1/prn/obligationcalculation/{year}")
             .RequestMessage;
         request.Should().NotBeNull();
-        request!.Headers.Should().ContainKey(TraceHeaderName).WhoseValue.Should().Contain(TraceId);
+        request.Headers.Should().ContainKey(TraceHeaderName).WhoseValue.Should().Contain(TraceId);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class PrnCommonBackendServiceTests : WireMockTestBase
             .LogEntries.Single(x => x.RequestMessage?.Path == $"/api/v1/prn/obligationcalculation/{year}")
             .RequestMessage;
         request.Should().NotBeNull();
-        request!.Headers.Should().NotContainKey(TraceHeaderName);
+        request.Headers.Should().NotContainKey(TraceHeaderName);
     }
 
     [Fact]

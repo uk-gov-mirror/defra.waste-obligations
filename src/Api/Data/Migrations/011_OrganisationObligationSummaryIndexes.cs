@@ -11,9 +11,9 @@ public class OrganisationObligationSummaryIndexes : MongoMigration
     private const string DueWorkIndexName = "ObligationYear_IsHydrationActive_Priority_NextRefreshAt";
     private const string OrganisationYearIndexName = "OrganisationId_ObligationYear";
 
-    public override MigrationVersion Version => new(1, 0, 8);
+    public override MigrationVersion Version => new(1, 0, 10);
 
-    public override string Name => "009 - Organisation obligation summary indexes";
+    public override string Name => "011 - Organisation obligation summary indexes";
 
     public override async Task UpAsync(MigrationContext context)
     {

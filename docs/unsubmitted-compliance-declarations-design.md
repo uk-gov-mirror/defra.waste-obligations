@@ -363,7 +363,7 @@ This is entirely local Mongo work. The same unanchored contains limitation remai
 
 The endpoint has its own `UnsubmittedOrganisationSortField` and `UnsubmittedOrganisationSortDirection`; it does not reuse the declaration-search enums. Like declaration search, it accepts a comma-separated, priority-ordered list of distinct `Field[asc|desc]` terms. `OrganisationName`, `OrganisationReferenceNumber`, `RecyclingObligations`, and `PercentageMet` are valid for both registration types. The endpoint contract is not constrained by the current frontend's displayed columns. Regulation 43 and date submitted are declaration fields and are not valid unsubmitted sorts.
 
-Migration `008_OrganisationEligibilityIndexes` creates the final eligibility indexes directly, rather than retaining transitional scope-first indexes. Migration `009_OrganisationObligationSummaryIndexes` creates the summary indexes. This branch has not been deployed, so no index-replacement or metric-backfill migration is needed:
+Migration `010_OrganisationEligibilityIndexes` creates the final eligibility indexes directly, rather than retaining transitional scope-first indexes. Migration `011_OrganisationObligationSummaryIndexes` creates the summary indexes. This branch has not been deployed, so no index-replacement or metric-backfill migration is needed:
 
 - eligibility rows: `{ generation, isVisibleInUnsubmittedView, name, organisationId }` for direct membership filtering and deterministic default ordering;
 - eligibility rows: `{ generation, isVisibleInUnsubmittedView, referenceNumber, name, organisationId }` for reference-number ordering;
