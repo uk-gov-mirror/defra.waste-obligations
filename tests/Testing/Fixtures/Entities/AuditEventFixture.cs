@@ -43,4 +43,14 @@ public static class AuditEventFixture
             .With(x => x.EntityId, $"entity-{sequence}")
             .With(x => x.SchemaVersion, Api.Data.Entities.ComplianceDeclaration.SchemaVersionValue);
     }
+
+    public static IPostprocessComposer<AuditEvent> ObligationCalculation(string eventId = "event-1", long sequence = 1)
+    {
+        return Default(eventId, sequence)
+            .With(x => x.Entity, "obligation_calculation")
+            .With(x => x.EntityId, MongoDB.Bson.ObjectId.GenerateNewId().ToString())
+            .With(x => x.EventType, "obligation_calculation.created")
+            .With(x => x.Actor, "system:waste-obligations")
+            .With(x => x.SchemaVersion, Api.Data.Entities.ObligationCalculation.SchemaVersionValue);
+    }
 }

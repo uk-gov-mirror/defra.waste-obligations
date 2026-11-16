@@ -5,6 +5,7 @@ public static class AnalyticsEventVocabulary
     public const string ElevatedSystemAllowedRemoval = "elevated_system_allowed_removal";
 
     private const string ComplianceDeclarationEntity = "compliance_declaration";
+    private const string ObligationCalculationEntity = "obligation_calculation";
     private const string CreateOperation = "create";
     private const string UpdateOperation = "update";
     private const string DeleteOperation = "delete";
@@ -45,18 +46,30 @@ public static class AnalyticsEventVocabulary
 
     public static void Validate(AnalyticsEvent analyticsEvent)
     {
-        if (analyticsEvent.Entity != ComplianceDeclarationEntity)
+        if (analyticsEvent.Entity is not (ComplianceDeclarationEntity or ObligationCalculationEntity))
             throw new InvalidOperationException($"Unregistered analytics entity '{analyticsEvent.Entity}'.");
 
         if (analyticsEvent.Operation is not (CreateOperation or UpdateOperation or DeleteOperation))
             throw new InvalidOperationException($"Unregistered analytics operation '{analyticsEvent.Operation}'.");
 
-        if (!s_eventTypes.Contains(analyticsEvent.EventType))
+        var isCalculation = analyticsEvent.Entity == ObligationCalculationEntity;
+        var registeredEventType = isCalculation
+            ? analyticsEvent.Operation switch
+            {
+                CreateOperation => analyticsEvent.EventType == "obligation_calculation.created",
+                UpdateOperation => analyticsEvent.EventType == "obligation_calculation.updated",
+                _ => false,
+            }
+            : s_eventTypes.Contains(analyticsEvent.EventType);
+        if (!registeredEventType)
             throw new InvalidOperationException($"Unregistered analytics event type '{analyticsEvent.EventType}'.");
 
         ValidateActor(analyticsEvent.Actor);
 
-        if (!s_schemaVersions.Contains(analyticsEvent.SchemaVersion))
+        var registeredSchemaVersion = isCalculation
+            ? analyticsEvent.SchemaVersion == "obligation_calculation_v1.0"
+            : s_schemaVersions.Contains(analyticsEvent.SchemaVersion);
+        if (!registeredSchemaVersion)
             throw new InvalidOperationException(
                 $"Unregistered analytics schema version '{analyticsEvent.SchemaVersion}'."
             );

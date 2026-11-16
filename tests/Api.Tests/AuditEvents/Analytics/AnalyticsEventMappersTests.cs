@@ -8,6 +8,74 @@ namespace Defra.WasteObligations.Api.Tests.AuditEvents.Analytics;
 
 public class AnalyticsEventMappersTests
 {
+    [Theory]
+    [InlineData("insert", "create", "obligation_calculation.created")]
+    [InlineData("update", "update", "obligation_calculation.updated")]
+    public void ToAnalyticsEvent_WhenCalculation_ShouldUseItsGovernedIdentity(
+        string operation,
+        string expectedOperation,
+        string eventType
+    )
+    {
+        var auditEvent = AuditEventFixture
+            .ObligationCalculation()
+            .With(x => x.Operation, operation)
+            .With(x => x.EventType, eventType)
+            .With(x => x.TraceId, "calculation-run")
+            .Create();
+
+        var result = auditEvent.ToAnalyticsEvent();
+
+        result.Entity.Should().Be("obligation_calculation");
+        result.EntityId.Should().Be($"oblcalc_{auditEvent.EntityId}");
+        result.Operation.Should().Be(expectedOperation);
+        result.EventType.Should().Be(eventType);
+        result.SchemaVersion.Should().Be("obligation_calculation_v1.0");
+        result.Actor.Should().Be("system:waste-obligations");
+        result.CorrelationId.Should().Be("calculation-run");
+        result.DeletedReason.Should().BeNull();
+        result.PiiKeyRef.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("delete", "obligation_calculation.removed", "system:waste-obligations", "v1.0")]
+    [InlineData("insert", "obligation_calculation.updated", "system:waste-obligations", "v1.0")]
+    [InlineData("update", "submission.amended", "system:waste-obligations", "v1.0")]
+    [InlineData("insert", "obligation_calculation.created", "unknown:actor", "v1.0")]
+    [InlineData("insert", "obligation_calculation.created", "system:waste-obligations", "v2.0")]
+    public void ToAnalyticsEvent_WhenCalculationVocabularyIsUnregistered_ShouldThrow(
+        string operation,
+        string eventType,
+        string actor,
+        string schemaVersion
+    )
+    {
+        var auditEvent = AuditEventFixture
+            .ObligationCalculation()
+            .With(x => x.Operation, operation)
+            .With(x => x.EventType, eventType)
+            .With(x => x.Actor, actor)
+            .With(x => x.SchemaVersion, schemaVersion)
+            .Create();
+
+        var act = () => auditEvent.ToAnalyticsEvent();
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ToAnalyticsEvent_WhenDeclarationUsesCalculationEventType_ShouldThrow()
+    {
+        var auditEvent = AuditEventFixture
+            .ComplianceDeclaration()
+            .With(x => x.EventType, "obligation_calculation.created")
+            .Create();
+
+        var act = () => auditEvent.ToAnalyticsEvent();
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
     [Fact]
     public void ToAnalyticsEvent_ShouldMapTheOutboxEventToTheGovernedEnvelope()
     {
