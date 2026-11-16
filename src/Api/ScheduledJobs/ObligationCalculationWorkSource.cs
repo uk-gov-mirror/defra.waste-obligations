@@ -28,15 +28,14 @@ public class ObligationCalculationWorkSource(IMongoDatabase database)
             .ThenBy(x => x.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return instruction is null
-            ? null
-            : new(
-                instruction.Id.ToString(),
-                instruction,
-                string.IsNullOrWhiteSpace(instruction.CorrelationId)
-                    ? instruction.Id.ToString()
-                    : instruction.CorrelationId
-            );
+        if (instruction is null)
+            return null;
+
+        var correlationId = string.IsNullOrWhiteSpace(instruction.CorrelationId)
+            ? instruction.Id.ToString()
+            : instruction.CorrelationId;
+
+        return new(instruction.Id.ToString(), instruction, correlationId);
     }
 
     public async Task<bool> TryStart(
