@@ -10,6 +10,7 @@ using Defra.WasteObligations.Api.Services.Scheduling;
 using Defra.WasteObligations.Api.Services.WastePackaging;
 using Defra.WasteObligations.Api.Utils.Logging;
 using Defra.WasteObligations.Api.Utils.Metrics;
+using Defra.WasteObligations.AuditEvents;
 using Defra.WasteObligations.Testing;
 using Defra.WasteObligations.Testing.Extensions.WireMock;
 using Defra.WasteObligations.Testing.Fixtures.WastePackaging;
@@ -73,6 +74,7 @@ public class ScheduledJobTests : IntegrationTestBase
             .AddTransient<IObligationCalculationInstructionService, ObligationCalculationInstructionService>()
             .AddWastePackagingService(false)
             .AddRequestMetrics()
+            .AddAuditEvents(configuration, addAnalyticsProcessor: false)
             .AddObligationCalculation()
             .AddScheduledJobs(configuration.GetSection("ScheduledJobs"))
             .BuildServiceProvider();
