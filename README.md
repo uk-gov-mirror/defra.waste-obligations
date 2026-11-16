@@ -41,6 +41,7 @@ API documentation can be viewed at http://localhost:8080/documentation/index.htm
 Additional project documentation:
 
 - [Analytics compliance declaration events](docs/analytics-compliance-declaration-events.md)
+- [Analytics obligation calculation events](docs/analytics-obligation-calculation-events.md)
 
 ## Concepts
 

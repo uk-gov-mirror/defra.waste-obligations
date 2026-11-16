@@ -554,6 +554,43 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
             .ContainSingle();
     }
 
+    [Fact]
+    public async Task Save_WhenOutboxInsertFails_ShouldRollbackCalculationAndHistory()
+    {
+        var first = await Subject().Save(Calculation(), TestContext.Current.CancellationToken);
+        var originalEvent = (await Events(first.Id)).Should().ContainSingle().Which;
+        var generator = Substitute.For<IEventIdGenerator>();
+        generator.Generate().Returns(originalEvent.EventId);
+        var context = Context();
+        var subject = new ObligationCalculationService(
+            context,
+            new AuditEventService(
+                new AuditEventDbContext(context.ObligationCalculations.Database),
+                TimeProvider.System,
+                generator
+            )
+        );
+
+        Func<Task> save = () => subject.Save(ChangeKilograms(first), TestContext.Current.CancellationToken);
+
+        var failure = await save.Should().ThrowAsync<MongoWriteException>();
+        failure.Which.WriteError.Category.Should().Be(ServerErrorCategory.DuplicateKey);
+        (await Current.Find(x => x.Id == first.Id).SingleAsync(TestContext.Current.CancellationToken))
+            .Should()
+            .BeEquivalentTo(first);
+        (
+            await History.CountDocumentsAsync(
+                FilterDefinition<ObligationCalculationHistory>.Empty,
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        )
+            .Should()
+            .Be(0);
+        var remainingEvent = (await Events(first.Id)).Should().ContainSingle().Which;
+        remainingEvent.EventId.Should().Be(originalEvent.EventId);
+        remainingEvent.After.Should().Equal(first.ToBsonDocument());
+    }
+
     private static IMongoCollection<ObligationCalculation> Current =>
         GetMongoDatabase().GetCollection<ObligationCalculation>(nameof(ObligationCalculation));
     private static IMongoCollection<BsonDocument> RawCurrent =>

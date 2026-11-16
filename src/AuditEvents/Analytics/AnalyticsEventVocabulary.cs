@@ -5,7 +5,6 @@ public static class AnalyticsEventVocabulary
     public const string ElevatedSystemAllowedRemoval = "elevated_system_allowed_removal";
 
     private const string ComplianceDeclarationEntity = "compliance_declaration";
-    private const string ObligationCalculationEntity = "obligation_calculation";
     private const string CreateOperation = "create";
     private const string UpdateOperation = "update";
     private const string DeleteOperation = "delete";
@@ -46,18 +45,18 @@ public static class AnalyticsEventVocabulary
 
     public static void Validate(AnalyticsEvent analyticsEvent)
     {
-        if (analyticsEvent.Entity is not (ComplianceDeclarationEntity or ObligationCalculationEntity))
+        if (analyticsEvent.Entity is not (ComplianceDeclarationEntity or ObligationCalculationEventContract.Entity))
             throw new InvalidOperationException($"Unregistered analytics entity '{analyticsEvent.Entity}'.");
 
         if (analyticsEvent.Operation is not (CreateOperation or UpdateOperation or DeleteOperation))
             throw new InvalidOperationException($"Unregistered analytics operation '{analyticsEvent.Operation}'.");
 
-        var isCalculation = analyticsEvent.Entity == ObligationCalculationEntity;
+        var isCalculation = analyticsEvent.Entity == ObligationCalculationEventContract.Entity;
         var registeredEventType = isCalculation
             ? analyticsEvent.Operation switch
             {
-                CreateOperation => analyticsEvent.EventType == "obligation_calculation.created",
-                UpdateOperation => analyticsEvent.EventType == "obligation_calculation.updated",
+                CreateOperation => analyticsEvent.EventType == ObligationCalculationEventContract.CreatedEventType,
+                UpdateOperation => analyticsEvent.EventType == ObligationCalculationEventContract.UpdatedEventType,
                 _ => false,
             }
             : s_eventTypes.Contains(analyticsEvent.EventType);
@@ -67,7 +66,7 @@ public static class AnalyticsEventVocabulary
         ValidateActor(analyticsEvent.Actor);
 
         var registeredSchemaVersion = isCalculation
-            ? analyticsEvent.SchemaVersion == "obligation_calculation_v1.0"
+            ? analyticsEvent.SchemaVersion == ObligationCalculationEventContract.SchemaVersion
             : s_schemaVersions.Contains(analyticsEvent.SchemaVersion);
         if (!registeredSchemaVersion)
             throw new InvalidOperationException(

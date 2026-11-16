@@ -2,6 +2,7 @@ using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
 using Defra.WasteObligations.Api.Data.Migrations;
 using Defra.WasteObligations.AuditEvents;
+using Defra.WasteObligations.AuditEvents.Analytics;
 using Defra.WasteObligations.AuditEvents.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -84,9 +85,11 @@ public class ObligationCalculationService(IDbContext dbContext, IAuditEventServi
                         session,
                         new AuditEventRequest(
                             "system:waste-obligations",
-                            "obligation_calculation",
+                            ObligationCalculationEventContract.Entity,
                             previous is null ? AuditEventOperation.Insert : AuditEventOperation.Update,
-                            previous is null ? "obligation_calculation.created" : "obligation_calculation.updated",
+                            previous is null
+                                ? ObligationCalculationEventContract.CreatedEventType
+                                : ObligationCalculationEventContract.UpdatedEventType,
                             null,
                             replacement.Id.ToString(),
                             replacement.Version,

@@ -12,8 +12,8 @@ public static class AnalyticsEventMappers
             Sequence = auditEvent.Sequence,
             Entity = auditEvent.Entity,
             EntityId =
-                auditEvent.Entity == "obligation_calculation"
-                    ? $"oblcalc_{auditEvent.EntityId}"
+                auditEvent.Entity == ObligationCalculationEventContract.Entity
+                    ? $"{ObligationCalculationEventContract.IdentityPrefix}{auditEvent.EntityId}"
                     : $"cdec_{auditEvent.EntityId}",
             Operation = AnalyticsEventVocabulary.ToOperation(auditEvent.Operation),
             EventType = auditEvent.EventType,
