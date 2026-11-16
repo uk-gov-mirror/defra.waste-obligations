@@ -54,9 +54,9 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
                 x.RecordedAt.Should().BeOnOrAfter(x.OccurredAt);
             });
         events[0].Before.Should().BeNull();
-        events[0].After.Should().Be(created.Calculation.ToBsonDocument());
-        events[1].Before.Should().Be(created.Calculation.ToBsonDocument());
-        events[1].After.Should().Be(updated.Calculation.ToBsonDocument());
+        events[0].After.Should().Equal(created.Calculation.ToBsonDocument());
+        events[1].Before.Should().Equal(created.Calculation.ToBsonDocument());
+        events[1].After.Should().Equal(updated.Calculation.ToBsonDocument());
         events[0].OccurredAt.Should().Be(created.Calculation.CalculatedOn);
         events[1].OccurredAt.Should().Be(updated.Calculation.CalculatedOn);
         (
@@ -158,10 +158,10 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
             .Materials[0]
             .InputKilograms.Should()
             .Be(second.Producers[0].Materials[0].InputKilograms + 100);
-        var auditEvent = (await Events(first.Id)).Last();
+        var auditEvent = (await Events(first.Id))[^1];
         auditEvent.Version.Should().Be(3);
-        auditEvent.Before.Should().Be(second.ToBsonDocument());
-        auditEvent.After.Should().Be(saved.ToBsonDocument());
+        auditEvent.Before.Should().Equal(second.ToBsonDocument());
+        auditEvent.After.Should().Equal(saved.ToBsonDocument());
     }
 
     [Fact]
@@ -214,8 +214,8 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         second.Producers[0].Materials[0].ObligationTonnes.Should().Be(first.Producers[0].Materials[0].ObligationTonnes);
         var events = await Events(first.Id);
         events.Should().HaveCount(3);
-        events[1].Before.Should().Be(original);
-        events[1].After.Should().Be(second.ToBsonDocument());
+        events[1].Before.Should().Equal(original);
+        events[1].After.Should().Equal(second.ToBsonDocument());
     }
 
     [Fact]
@@ -362,7 +362,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         )
             .Should()
             .Be(firstInsert ? 1 : 2);
-        events.Last().After.Should().Be(winner.ToBsonDocument());
+        events[^1].After.Should().Equal(winner.ToBsonDocument());
     }
 
     [Fact]
