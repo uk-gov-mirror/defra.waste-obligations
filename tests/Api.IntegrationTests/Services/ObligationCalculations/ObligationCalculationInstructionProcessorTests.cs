@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using AutoFixture;
 using AwesomeAssertions;
+using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
 using Defra.WasteObligations.Api.ScheduledJobs;
 using Defra.WasteObligations.Api.Services.ObligationCalculations;
@@ -8,13 +9,18 @@ using Defra.WasteObligations.Api.Services.Scheduling;
 using Defra.WasteObligations.Api.Services.WastePackaging;
 using Defra.WasteObligations.Api.Utils.Logging;
 using Defra.WasteObligations.Api.Utils.Metrics;
+using Defra.WasteObligations.AuditEvents;
+using Defra.WasteObligations.AuditEvents.Data;
 using Defra.WasteObligations.AuditEvents.Logging;
 using Defra.WasteObligations.Testing;
 using Defra.WasteObligations.Testing.Fixtures.Entities;
+using Defra.WasteObligations.Testing.Fixtures.WastePackaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
@@ -24,6 +30,104 @@ namespace Defra.WasteObligations.Api.IntegrationTests.Services.ObligationCalcula
 public class ObligationCalculationInstructionProcessorTests : IntegrationTestBase
 {
     private const string JobName = "ObligationCalculation";
+
+    [Theory]
+    [InlineData("originating-request", false)]
+    [InlineData(null, false)]
+    [InlineData(null, true)]
+    [InlineData(" ", true)]
+    public async Task Worker_ShouldCarryRunCorrelationIntoEveryCalculationEvent(string? traceId, bool legacy)
+    {
+        var database = GetMongoApplicationDatabase();
+        ObligationCalculationInstruction instruction;
+        if (legacy)
+        {
+            instruction = ObligationCalculationInstructionFixture
+                .Default()
+                .With(x => x.CorrelationId, traceId)
+                .Create();
+            await ObligationCalculationInstructions.InsertOneAsync(
+                instruction,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+        }
+        else
+        {
+            using var scope = CorrelationContext.Begin(NullLogger.Instance, traceId);
+            instruction = await new ObligationCalculationInstructionService(database, TimeProvider.System).Create(
+                2026,
+                null,
+                TestContext.Current.CancellationToken
+            );
+            if (traceId is null)
+                instruction.CorrelationId.Should().MatchRegex("^[0-9a-f]{32}$");
+            else
+                instruction.CorrelationId.Should().Be(traceId);
+        }
+        var context = new MongoDbContext(
+            database,
+            Options.Create(new MongoDbOptions()),
+            NullLogger<MongoDbContext>.Instance
+        );
+        var calculationService = new ObligationCalculationService(
+            context,
+            new AuditEventService(new AuditEventDbContext(database), TimeProvider.System, new UlidEventIdGenerator())
+        );
+        var packaging = Substitute.For<IWastePackagingService>();
+        packaging
+            .Read(instruction.ObligationYear - 1, Arg.Any<CancellationToken>())
+            .Returns(
+                new PackagingResponse
+                {
+                    Items =
+                    [
+                        ApprovedSubmissionFixture.Default().Create(),
+                        ApprovedSubmissionFixture.Default().Create(),
+                    ],
+                }
+            );
+        var processor = new ObligationCalculationProcessor(
+            packaging,
+            new ObligationCalculator(
+                Options.Create(
+                    new ObligationCalculationOptions
+                    {
+                        Targets = new()
+                        {
+                            [instruction.ObligationYear] = new() { [ObligationMaterials.Plastic] = 0.57 },
+                        },
+                    }
+                ),
+                TimeProvider.System
+            ),
+            calculationService,
+            Substitute.For<IObligationCalculationMetrics>(),
+            TimeProvider.System,
+            NullLogger<ObligationCalculationProcessor>.Instance
+        );
+        await using var services = Services(processor);
+        var worker = services.GetRequiredService<IHostedService>();
+        try
+        {
+            await worker.StartAsync(TestContext.Current.CancellationToken);
+            await WaitForAsync(async () =>
+                (await Read(instruction)).Status.Should().Be(ObligationCalculationInstructionStatus.Completed)
+            );
+        }
+        finally
+        {
+            await worker.StopAsync(TestContext.Current.CancellationToken);
+        }
+
+        var events = await AuditEvents
+            .Find(x => x.Entity == "obligation_calculation")
+            .ToListAsync(TestContext.Current.CancellationToken);
+        var expectedTraceId = string.IsNullOrWhiteSpace(instruction.CorrelationId)
+            ? instruction.Id.ToString()
+            : instruction.CorrelationId;
+        events.Should().HaveCount(2).And.AllSatisfy(x => x.TraceId.Should().Be(expectedTraceId));
+        (await Read(instruction)).CorrelationId.Should().Be(instruction.CorrelationId);
+    }
 
     [Fact]
     public async Task WorkSource_ShouldSelectOldestWorkAndCompleteOnlyAfterProcessing()
@@ -183,6 +287,7 @@ public class ObligationCalculationInstructionProcessorTests : IntegrationTestBas
 
     [Theory]
     [InlineData(null)]
+    [InlineData(" ")]
     [InlineData("trace-123")]
     public async Task Worker_WhenPackagingFetchFails_ShouldKeepSameInstructionAndRetryBeforeCompleting(string? traceId)
     {
@@ -250,13 +355,11 @@ public class ObligationCalculationInstructionProcessorTests : IntegrationTestBas
             );
         attempts.Should().Be(2);
         await packaging.Received(2).Read(instruction.ObligationYear - 1, Arg.Any<CancellationToken>());
-        observedTraceIds.Should().HaveCount(2).And.OnlyContain(x => x == traceId);
-        if (traceId is not null)
-            workerLogger
-                .Received()
-                .BeginScope(Arg.Is<Dictionary<string, object?>>(x => (string?)x["TraceId"] == traceId));
-        else
-            workerLogger.DidNotReceive().BeginScope(Arg.Any<Dictionary<string, object?>>());
+        var expectedTraceId = string.IsNullOrWhiteSpace(traceId) ? instruction.Id.ToString() : traceId;
+        observedTraceIds.Should().HaveCount(2).And.OnlyContain(x => x == expectedTraceId);
+        workerLogger
+            .Received()
+            .BeginScope(Arg.Is<Dictionary<string, object?>>(x => (string?)x["TraceId"] == expectedTraceId));
         (await Read(instruction)).FailureCount.Should().Be(1);
         (
             await ObligationCalculationInstructions.CountDocumentsAsync(

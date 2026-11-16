@@ -36,7 +36,7 @@ public class AuditEventService(
                 EventType = auditEvent.EventType,
                 DeletedReason = auditEvent.DeletedReason,
                 OccurredAt = auditEvent.OccurredAt,
-                RecordedAt = utcNow,
+                RecordedAt = utcNow < auditEvent.OccurredAt ? auditEvent.OccurredAt : utcNow,
                 Actor = auditEvent.Actor,
                 Version = auditEvent.Version,
                 Before = auditEvent.Before,

@@ -6,6 +6,8 @@ using Defra.WasteObligations.Api.ScheduledJobs;
 using Defra.WasteObligations.Api.Services.ObligationCalculations;
 using Defra.WasteObligations.Api.Services.WastePackaging;
 using Defra.WasteObligations.Api.Utils.Metrics;
+using Defra.WasteObligations.AuditEvents;
+using Defra.WasteObligations.AuditEvents.Data;
 using Defra.WasteObligations.Testing;
 using Defra.WasteObligations.Testing.Fixtures.Entities;
 using Defra.WasteObligations.Testing.Fixtures.WastePackaging;
@@ -286,7 +288,7 @@ public class PackagingCalculationTests : IntegrationTestBase
                         call.ArgAt<CancellationToken>(2)
                     )
                 );
-            var service = new ObligationCalculationService(context);
+            var service = CalculationService(context);
             var metrics = Substitute.For<IObligationCalculationMetrics>();
             var first = Processor(
                 Source(ApprovedSubmissionFixture.Default().With(x => x.SubmitterOrganisationId, SubmitterId).Create()),
@@ -417,10 +419,20 @@ public class PackagingCalculationTests : IntegrationTestBase
                 ),
                 TimeProvider.System
             ),
-            service ?? new ObligationCalculationService(Context()),
+            service ?? CalculationService(Context()),
             metrics ?? Substitute.For<IObligationCalculationMetrics>(),
             TimeProvider.System,
             _logger
+        );
+
+    private static ObligationCalculationService CalculationService(IDbContext context) =>
+        new(
+            context,
+            new AuditEventService(
+                new AuditEventDbContext(context.ObligationCalculations.Database),
+                TimeProvider.System,
+                new UlidEventIdGenerator()
+            )
         );
 
     private static MongoDbContext Context() =>

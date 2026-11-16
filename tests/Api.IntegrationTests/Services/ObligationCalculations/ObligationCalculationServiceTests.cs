@@ -3,9 +3,13 @@ using AwesomeAssertions;
 using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
 using Defra.WasteObligations.Api.Services.ObligationCalculations;
+using Defra.WasteObligations.AuditEvents;
+using Defra.WasteObligations.AuditEvents.Data;
+using Defra.WasteObligations.AuditEvents.Entities;
 using Defra.WasteObligations.Testing.Fixtures.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
@@ -29,6 +33,32 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         unchanged.Outcome.Should().Be(CalculationSaveOutcome.Unchanged);
         updated.Outcome.Should().Be(CalculationSaveOutcome.Updated);
         updated.Calculation.Version.Should().Be(2);
+        var events = await Events(created.Calculation.Id);
+        events.Should().HaveCount(2);
+        events.Select(x => x.Operation).Should().Equal("insert", "update");
+        events
+            .Select(x => x.EventType)
+            .Should()
+            .Equal("obligation_calculation.created", "obligation_calculation.updated");
+        events.Select(x => x.Version).Should().Equal(1, 2);
+        events.Select(x => x.Sequence).Should().BeInAscendingOrder().And.OnlyHaveUniqueItems();
+        events.Select(x => x.EventId).Should().OnlyHaveUniqueItems();
+        events
+            .Should()
+            .AllSatisfy(x =>
+            {
+                x.EntityId.Should().Be(created.Calculation.Id.ToString());
+                x.Actor.Should().Be("system:waste-obligations");
+                x.SchemaVersion.Should().Be("v1.0");
+                x.DeletedReason.Should().BeNull();
+                x.RecordedAt.Should().BeOnOrAfter(x.OccurredAt);
+            });
+        events[0].Before.Should().BeNull();
+        events[0].After.Should().Be(created.Calculation.ToBsonDocument());
+        events[1].Before.Should().Be(created.Calculation.ToBsonDocument());
+        events[1].After.Should().Be(updated.Calculation.ToBsonDocument());
+        events[0].OccurredAt.Should().Be(created.Calculation.CalculatedOn);
+        events[1].OccurredAt.Should().Be(updated.Calculation.CalculatedOn);
         (
             await History.CountDocumentsAsync(
                 FilterDefinition<ObligationCalculationHistory>.Empty,
@@ -37,6 +67,21 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         )
             .Should()
             .Be(1);
+    }
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(1, 1)]
+    public async Task Save_ShouldRecordNoEarlierThanCalculationCompletion(int clockOffset, int expectedOffset)
+    {
+        var calculation = Calculation();
+        var clock = new FakeTimeProvider(new DateTimeOffset(calculation.CalculatedOn).AddMilliseconds(clockOffset));
+
+        var saved = await Subject(timeProvider: clock).Save(calculation, TestContext.Current.CancellationToken);
+
+        var auditEvent = (await Events(saved.Id)).Should().ContainSingle().Which;
+        auditEvent.OccurredAt.Should().Be(calculation.CalculatedOn);
+        auditEvent.RecordedAt.Should().Be(calculation.CalculatedOn.AddMilliseconds(expectedOffset));
     }
 
     [Fact]
@@ -84,6 +129,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
                 x["inputTonnes"].BsonType.Should().Be(BsonType.Int64);
                 x["obligationTonnes"].BsonType.Should().Be(BsonType.Int64);
             });
+        (await Events(saved.Id)).Should().ContainSingle();
     }
 
     [Fact]
@@ -112,6 +158,10 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
             .Materials[0]
             .InputKilograms.Should()
             .Be(second.Producers[0].Materials[0].InputKilograms + 100);
+        var auditEvent = (await Events(first.Id)).Last();
+        auditEvent.Version.Should().Be(3);
+        auditEvent.Before.Should().Be(second.ToBsonDocument());
+        auditEvent.After.Should().Be(saved.ToBsonDocument());
     }
 
     [Fact]
@@ -162,6 +212,10 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         rawHistory[1]["calculation"].AsBsonDocument.Equals(second.ToBsonDocument()).Should().BeTrue();
         second.Producers[0].Materials[0].InputTonnes.Should().Be(first.Producers[0].Materials[0].InputTonnes);
         second.Producers[0].Materials[0].ObligationTonnes.Should().Be(first.Producers[0].Materials[0].ObligationTonnes);
+        var events = await Events(first.Id);
+        events.Should().HaveCount(3);
+        events[1].Before.Should().Be(original);
+        events[1].After.Should().Be(second.ToBsonDocument());
     }
 
     [Fact]
@@ -225,6 +279,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         )
             .Should()
             .Be(0);
+        (await Events(first.Id)).Should().ContainSingle();
     }
 
     [Theory]
@@ -270,7 +325,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
                     call.ArgAt<CancellationToken>(2)
                 );
             });
-        var losing = new ObligationCalculationService(wrapper).Save(competing, TestContext.Current.CancellationToken);
+        var losing = Subject(wrapper).Save(competing, TestContext.Current.CancellationToken);
         await reached.Task.WaitAsync(TestContext.Current.CancellationToken);
         var winner = await Subject().Save(competing, TestContext.Current.CancellationToken);
         release.SetResult();
@@ -297,6 +352,17 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         )
             .Should()
             .Be(firstInsert ? 0 : 1);
+        var events = await Events(winner.Id);
+        events.Should().HaveCount(firstInsert ? 1 : 2);
+        (
+            await AuditEvents.CountDocumentsAsync(
+                x => x.Entity == "obligation_calculation",
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        )
+            .Should()
+            .Be(firstInsert ? 1 : 2);
+        events.Last().After.Should().Be(winner.ToBsonDocument());
     }
 
     [Fact]
@@ -340,7 +406,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
                         call.ArgAt<CancellationToken>(2)
                     )
                 );
-            var subject = new ObligationCalculationService(wrapper);
+            var subject = Subject(wrapper);
             var first = await subject.Save(Calculation(), TestContext.Current.CancellationToken);
             Func<Task> save = () => subject.Save(ChangeKilograms(first), TestContext.Current.CancellationToken);
 
@@ -361,6 +427,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
             )
                 .Should()
                 .Be(0);
+            (await Events(first.Id)).Should().ContainSingle();
         }
         finally
         {
@@ -398,11 +465,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
                     call.ArgAt<CancellationToken>(2)
                 )
             );
-        Func<Task> save = () =>
-            new ObligationCalculationService(wrapper).Save(
-                ChangeKilograms(first),
-                TestContext.Current.CancellationToken
-            );
+        Func<Task> save = () => Subject(wrapper).Save(ChangeKilograms(first), TestContext.Current.CancellationToken);
 
         if (cancelled)
             await save.Should().ThrowAsync<OperationCanceledException>();
@@ -419,6 +482,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         )
             .Should()
             .Be(0);
+        (await Events(first.Id)).Should().ContainSingle();
     }
 
     [Fact]
@@ -435,6 +499,7 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
         (await Current.Find(x => x.Id == first.Id).SingleAsync(TestContext.Current.CancellationToken))
             .Should()
             .BeEquivalentTo(first);
+        (await Events(first.Id)).Should().ContainSingle();
     }
 
     [Fact]
@@ -496,7 +561,25 @@ public class ObligationCalculationServiceTests : IntegrationTestBase
     private static IMongoCollection<ObligationCalculationHistory> History =>
         GetMongoDatabase().GetCollection<ObligationCalculationHistory>(nameof(ObligationCalculationHistory));
 
-    private static ObligationCalculationService Subject() => new(Context());
+    private static ObligationCalculationService Subject(IDbContext? context = null, TimeProvider? timeProvider = null)
+    {
+        context ??= Context();
+
+        return new ObligationCalculationService(
+            context,
+            new AuditEventService(
+                new AuditEventDbContext(context.ObligationCalculations.Database),
+                timeProvider ?? TimeProvider.System,
+                new UlidEventIdGenerator()
+            )
+        );
+    }
+
+    private Task<List<AuditEvent>> Events(ObjectId id) =>
+        AuditEvents
+            .Find(x => x.Entity == "obligation_calculation" && x.EntityId == id.ToString())
+            .SortBy(x => x.Version)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
     private static MongoDbContext Context() =>
         new(

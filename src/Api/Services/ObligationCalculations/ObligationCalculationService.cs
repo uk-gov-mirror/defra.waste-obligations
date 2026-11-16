@@ -1,13 +1,16 @@
 using Defra.WasteObligations.Api.Data;
 using Defra.WasteObligations.Api.Data.Entities;
 using Defra.WasteObligations.Api.Data.Migrations;
+using Defra.WasteObligations.AuditEvents;
+using Defra.WasteObligations.AuditEvents.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Defra.WasteObligations.Api.Services.ObligationCalculations;
 
-public class ObligationCalculationService(IDbContext dbContext) : IObligationCalculationService
+public class ObligationCalculationService(IDbContext dbContext, IAuditEventService auditEventService)
+    : IObligationCalculationService
 {
     private const string VersionField = "version";
 
@@ -76,6 +79,25 @@ public class ObligationCalculationService(IDbContext dbContext) : IObligationCal
                     {
                         await ReplaceCurrent(session, currentCollection, previous, replacement, token);
                     }
+
+                    await auditEventService.RecordEvent(
+                        session,
+                        new AuditEventRequest(
+                            "system:waste-obligations",
+                            "obligation_calculation",
+                            previous is null ? AuditEventOperation.Insert : AuditEventOperation.Update,
+                            previous is null ? "obligation_calculation.created" : "obligation_calculation.updated",
+                            null,
+                            replacement.Id.ToString(),
+                            replacement.Version,
+                            previous,
+                            replacement.ToBsonDocument(),
+                            replacement.SchemaVersion,
+                            replacement.CalculatedOn,
+                            CorrelationContext.Current
+                        ),
+                        token
+                    );
 
                     return replacement;
                 },
