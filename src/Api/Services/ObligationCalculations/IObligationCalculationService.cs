@@ -13,12 +13,3 @@ public interface IObligationCalculationService
 
     Task<ObligationCalculation> Save(ObligationCalculation calculation, CancellationToken cancellationToken);
 }
-
-public enum CalculationSaveOutcome
-{
-    Created,
-    Updated,
-    Unchanged,
-}
-
-public sealed record CalculationSaveResult(ObligationCalculation Calculation, CalculationSaveOutcome Outcome);
